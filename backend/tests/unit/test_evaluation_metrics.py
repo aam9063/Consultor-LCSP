@@ -10,6 +10,7 @@ from app.services.evaluation import (
     abstention_accuracy,
     all_citations_valid,
     build_report,
+    question_record,
     recall_at_k,
 )
 
@@ -203,3 +204,80 @@ def test_build_report_comparison_per_question_is_in_law_only() -> None:
     report = build_report([out_of_law])
     assert report["comparison"]["per_question"] == []
     assert report["in_law"] == 0
+
+
+# --- citation failures and the JSON audit record ----------------------------
+
+
+def _failing(idx: str, citations: tuple[str, ...], warning: str | None) -> QuestionResult:
+    """An in-law, non-abstained answer whose citation `999` was not retrieved."""
+    return QuestionResult(
+        id=idx,
+        pregunta=f"pregunta {idx}",
+        expected_articles=("107",),
+        should_abstain=False,
+        abstained=False,
+        citations=citations,
+        retrieved_articles=("107", "100", "101", "102", "103"),
+        embeddings_articles=(),
+        warning=warning,
+    )
+
+
+def test_build_report_lists_answers_with_invalid_citations_and_their_warning() -> None:
+    results = [
+        _failing("P-03", ("107", "999"), "citas no respaldadas por el contexto: 999."),
+        _result("P-01", recall=1.0),
+    ]
+    report = build_report(results)
+    failures = report["citation_failures"]
+    assert [item["id"] for item in failures] == ["P-03"]
+    assert failures[0]["pregunta"] == "pregunta P-03"
+    assert failures[0]["citas"] == ["107", "999"]
+    assert failures[0]["warning"] == "citas no respaldadas por el contexto: 999."
+
+
+def test_build_report_keeps_valid_and_abstained_answers_out_of_the_failure_list() -> None:
+    abstained_in_law = QuestionResult(
+        id="P-05",
+        pregunta="pregunta P-05",
+        expected_articles=("107",),
+        should_abstain=False,
+        abstained=True,
+        citations=(),
+        retrieved_articles=("107",),
+        embeddings_articles=(),
+    )
+    report = build_report([_result("P-01", recall=1.0), abstained_in_law])
+    assert report["citation_failures"] == []
+
+
+def test_question_record_contains_every_audit_field() -> None:
+    result = _failing("P-03", ("107", "999"), "aviso de validación")
+    record = question_record(result)
+    assert record == {
+        "id": "P-03",
+        "pregunta": "pregunta P-03",
+        "articulos_esperados": ["107"],
+        "articulos_recuperados": ["107", "100", "101", "102", "103"],
+        "citas": ["107", "999"],
+        "abstencion": False,
+        "warning": "aviso de validación",
+    }
+
+
+def test_question_record_of_an_abstention_has_no_citations() -> None:
+    result = QuestionResult(
+        id="P-21",
+        pregunta="pregunta P-21",
+        expected_articles=(),
+        should_abstain=True,
+        abstained=True,
+        citations=(),
+        retrieved_articles=(),
+        embeddings_articles=(),
+    )
+    record = question_record(result)
+    assert record["citas"] == []
+    assert record["abstencion"] is True
+    assert record["articulos_esperados"] == []

@@ -6,7 +6,10 @@ validated citations and abstention — plus an embeddings-only baseline
 (the vector branch alone), and writes `evals/results/<fecha>.md` with
 recall@5, % of answers with all citations valid, % of correct
 abstention, the worst cases and the hybrid-versus-embeddings-only
-comparison (BRIEF section 12).
+comparison (BRIEF section 12). It also writes
+`evals/results/<fecha>.json` with one auditable record per question
+(expected and retrieved articles, citations, abstention, service
+warning), so a later run can be audited without spending quota again.
 
 Run from the repository root (the `app` package is the backend project):
 
@@ -19,6 +22,7 @@ test suite or by the default CI; only `workflow_dispatch` uses it.
 
 import argparse
 import asyncio
+import json
 from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
@@ -31,7 +35,7 @@ from app.adapters.llm import NanLLMClient
 from app.db.models import Chunk
 from app.db.session import dispose_engine, get_session_factory
 from app.services.answers import AnswerResult, answer_question
-from app.services.evaluation import QuestionResult, build_report, render_markdown
+from app.services.evaluation import QuestionResult, build_report, question_record, render_markdown
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_QUESTIONS = REPO_ROOT / "evals" / "preguntas.yaml"
@@ -99,6 +103,7 @@ async def run_evaluation(questions: Sequence[dict[str, Any]], *, top_k: int) -> 
                     ),
                     retrieved_articles=tuple(chunk.articulo for chunk in answer.chunks),
                     embeddings_articles=embeddings_articles,
+                    warning=answer.warning,
                 )
             )
     await dispose_engine()
@@ -108,13 +113,23 @@ async def run_evaluation(questions: Sequence[dict[str, Any]], *, top_k: int) -> 
 def write_report(
     results: Sequence[QuestionResult], *, output_dir: Path, today: str
 ) -> Path:
-    """Build, render and write `evals/results/<fecha>.md`; print the summary."""
+    """Write `evals/results/<fecha>.md` and its per-question `<fecha>.json`.
+
+    The JSON payload keeps one auditable record per question, so a later
+    run can be inspected without spending quota again.
+    """
     report = build_report(results)
     text = render_markdown(report, fecha=today, corpus=CORPUS)
     output_dir.mkdir(parents=True, exist_ok=True)
     destination = output_dir / f"{today}.md"
     destination.write_text(text, encoding="utf-8")
+    audit = output_dir / f"{today}.json"
+    records = [question_record(result) for result in results]
+    audit.write_text(
+        json.dumps(records, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
     print(f"report written to {destination}")
+    print(f"per-question audit written to {audit}")
     print(f"recall@5: {report['recall_at_5'] * 100:.1f}%")
     print(f"valid citations: {report['valid_citations_pct']:.1f}%")
     print(

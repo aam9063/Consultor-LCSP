@@ -69,3 +69,40 @@ def test_in_law_entries_name_confirmed_articles(questions: list[dict[str, object
             for article in articles:
                 assert isinstance(article, str)
                 assert ARTICLE_RE.match(article), (entry["id"], article)
+
+
+def test_in_law_entries_expect_at_most_two_articles(questions: list[dict[str, object]]) -> None:
+    """A professional doubt can span two precepts, never more."""
+    for entry in questions:
+        expected = entry["articulos_esperados"]
+        if entry["debe_abstenerse"]:
+            continue
+        assert isinstance(expected, list)
+        assert len(expected) <= 2, entry["id"]
+
+
+def test_two_article_questions_name_both_in_the_reference_answer(
+    questions: list[dict[str, object]],
+) -> None:
+    """A question expecting two articles says so in `respuesta_referencia`."""
+    for entry in questions:
+        expected = entry["articulos_esperados"]
+        if entry["debe_abstenerse"] or not isinstance(expected, list) or len(expected) < 2:
+            continue
+        reference = str(entry["respuesta_referencia"])
+        assert all(re.search(rf"\b{number}\b", reference) for number in expected), entry["id"]
+
+
+def test_in_law_questions_do_not_echo_the_statute_wording(
+    questions: list[dict[str, object]],
+) -> None:
+    """Questions must be asked the way a professional would, not copy titles.
+
+    The saturated first run scored 100% recall because the questions repeated
+    the article titles almost verbatim. Naming the article in the question
+    defeats the point of the retrieval evaluation, so it is forbidden.
+    """
+    for entry in questions:
+        if not entry["debe_abstenerse"]:
+            question = str(entry["pregunta"]).lower()
+            assert "artículo" not in question and "articulo" not in question, entry["id"]

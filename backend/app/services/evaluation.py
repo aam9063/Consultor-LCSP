@@ -18,6 +18,7 @@ __all__ = [
     "abstention_accuracy",
     "all_citations_valid",
     "build_report",
+    "question_record",
     "recall_at_k",
     "render_markdown",
 ]
@@ -54,6 +55,7 @@ class QuestionResult:
     citations: tuple[str, ...]
     retrieved_articles: tuple[str, ...]
     embeddings_articles: tuple[str, ...] = ()
+    warning: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -127,6 +129,17 @@ def build_report(results: Sequence[QuestionResult]) -> dict[str, Any]:
     answers = [result for result in in_law if not result.abstained]
     valid_citations_pct = _pct(sum(1 for a in answers if all_citations_valid(a)), len(answers))
 
+    citation_failures = [
+        {
+            "id": result.id,
+            "pregunta": result.pregunta,
+            "citas": list(result.citations),
+            "warning": result.warning,
+        }
+        for result in answers
+        if not all_citations_valid(result)
+    ]
+
     stats = abstention_accuracy(results)
 
     worst_cases = [
@@ -168,7 +181,27 @@ def build_report(results: Sequence[QuestionResult]) -> dict[str, Any]:
             "delta_pct_points": round((recall_at_5 - embeddings_recall_at_5) * 100.0, 2),
             "per_question": per_question,
         },
+        "citation_failures": citation_failures,
         "worst_cases": worst_cases,
+    }
+
+
+def question_record(result: QuestionResult) -> dict[str, Any]:
+    """The auditable per-question payload persisted next to the report.
+
+    One JSON object per annotated question with exactly what the run saw:
+    expected and retrieved articles, the citations the model produced, the
+    abstention flag and the service warning. A later run can therefore be
+    audited without spending quota again.
+    """
+    return {
+        "id": result.id,
+        "pregunta": result.pregunta,
+        "articulos_esperados": list(result.expected_articles),
+        "articulos_recuperados": list(result.retrieved_articles),
+        "citas": list(result.citations),
+        "abstencion": result.abstained,
+        "warning": result.warning,
     }
 
 
@@ -211,6 +244,19 @@ def render_markdown(report: dict[str, Any], *, fecha: str, corpus: str) -> str:
     for item in comparison["per_question"]:
         lines.append(
             f"| {item['id']} — {item['pregunta']} | {item['hibrido']:.2f} | {item['embeddings']:.2f} |"
+        )
+    lines.append("")
+    lines.append("## Respuestas sin citas válidas")
+    if report["citation_failures"]:
+        for failure in report["citation_failures"]:
+            lines.append(
+                f"- **{failure['id']}**: {failure['pregunta']} — citas producidas: "
+                f"{', '.join(failure['citas']) or 'ninguna'}"
+            )
+            lines.append(f"  - Aviso del servicio: {failure['warning'] or 'ninguno'}")
+    else:
+        lines.append(
+            "- Ninguna: todas las respuestas generadas citan artículos del contexto recuperado."
         )
     lines.append("")
     lines.append("## Peores casos")

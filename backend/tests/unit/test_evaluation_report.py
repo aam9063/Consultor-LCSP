@@ -73,3 +73,59 @@ def test_markdown_lists_worst_cases_with_recall() -> None:
     worst_section = text.split("Peores casos")[1]
     assert "P-02" in worst_section
     assert "0.5" in worst_section
+
+
+# --- citation failure section (why valid citations are below 100%) ----------
+
+
+CITATION_WARNING = "Afirmaciones con citas no respaldadas por el contexto recuperado: art. 999."
+
+FAILING_REPORT: dict[str, object] = build_report(
+    [
+        QuestionResult(
+            id="P-04",
+            pregunta="importe del contrato menor",
+            expected_articles=("118",),
+            should_abstain=False,
+            abstained=False,
+            citations=("118", "999"),
+            retrieved_articles=("118", "107", "149", "159", "215", "101"),
+            embeddings_articles=("118", "107", "149"),
+            warning=CITATION_WARNING,
+        ),
+        QuestionResult(
+            id="P-01",
+            pregunta="penalidades",
+            expected_articles=("193",),
+            should_abstain=False,
+            abstained=False,
+            citations=("193",),
+            retrieved_articles=("193", "107", "118", "149", "159", "215"),
+            embeddings_articles=("193", "107", "118"),
+        ),
+    ]
+)
+
+
+def _citation_section(text: str) -> str:
+    """The markdown chunk between the citation-failure heading and the next one."""
+    tail = text.split("## Respuestas sin citas válidas")[1]
+    return tail.split("\n## ")[0]
+
+
+def test_markdown_renders_failing_citation_section_with_cause() -> None:
+    text = render_markdown(FAILING_REPORT, fecha="2026-11-14", corpus="LCSP consolidada")
+    section = _citation_section(text)
+    assert "P-04" in section
+    assert "importe del contrato menor" in section
+    assert "999" in section
+    assert CITATION_WARNING in section
+    # Valid answers are not listed as failures.
+    assert "P-01" not in section
+
+
+def test_markdown_states_no_citation_failures_when_everything_is_valid() -> None:
+    text = render_markdown(REPORT, fecha="2026-11-13", corpus="LCSP consolidada")
+    section = _citation_section(text)
+    assert "Ninguna" in section
+    assert "P-01" not in section
