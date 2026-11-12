@@ -147,6 +147,8 @@ Otras leyes o normativa (solo LCSP consolidada); descarga automática del BOE en
 - Slice API (`2225e7b..2084cfa`, 565 líneas, lentes `risk` + `resilience`, lineage `review-3d828745be58ead1`): 2 revisores + refutador ejecutados. **1 hallazgo severo corroborado**: `R4-async-singleton-race` (singletons `_engine`/`_session_factory` inicializados lazy sin cerrojo → carrera que puede crear dos engines). Estado nativo: `correction_required`.
 - El `STATUS` de esa lineage pide además una decisión de *intended-untracked* sobre dos mockups que no generé yo: `frontend/docs/mock/LcspConsulta.dc.html` y `frontend/docs/mock/LcspRevisor.dc.html`.
 - Slices `web` (`aaade50..b0477cb`) e `infra` (`9be8ab0..029f413`) sin revisar todavía: la authority del slice API sigue abierta en `correction_required`.
+- **Corrección aplicada** (2026-11-12): `fix(api)` guarda la inicialización del engine con `threading.Lock`. RED: con el cerrojo neutralizado se crean 4 engines para 4 hilos; GREEN: 1 engine y la misma factory (`tests/unit/test_db_session.py`, 2 tests). Checks en verde de nuevo.
+- La lineage `review-3d828745be58ead1` quedó **stale**: al volver a la rama, el candidato pasó a ser todo el andamiaje (53 ficheros) y el `STATUS` respondió `action: recover`, `action_disposition: scope_changed`. Revisar slices por checkout detached no es compatible con la proyección de workspace que exige el revisor; el slice API no pudo cerrarse nativamente.
 
 ## Progreso y siguiente paso
 
