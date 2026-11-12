@@ -56,6 +56,9 @@ class QuestionResult:
     retrieved_articles: tuple[str, ...]
     embeddings_articles: tuple[str, ...] = ()
     warning: str | None = None
+    # Best rerank score of the retrieval step, recorded independently of the
+    # answer path so the abstention threshold can be calibrated from real runs.
+    best_score: float | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -141,6 +144,7 @@ def build_report(results: Sequence[QuestionResult]) -> dict[str, Any]:
     ]
 
     stats = abstention_accuracy(results)
+    ranges = score_ranges(results)
 
     worst_cases = [
         {
@@ -169,6 +173,7 @@ def build_report(results: Sequence[QuestionResult]) -> dict[str, Any]:
         "out_of_law": out_of_law_count,
         "recall_at_5": recall_at_5,
         "valid_citations_pct": valid_citations_pct,
+        "score_ranges": ranges,
         "abstention": {
             "correct": stats.correct,
             "total": stats.total,
@@ -202,6 +207,7 @@ def question_record(result: QuestionResult) -> dict[str, Any]:
         "citas": list(result.citations),
         "abstencion": result.abstained,
         "warning": result.warning,
+        "best_score": result.best_score,
     }
 
 
@@ -259,6 +265,21 @@ def render_markdown(report: dict[str, Any], *, fecha: str, corpus: str) -> str:
             "- Ninguna: todas las respuestas generadas citan artículos del contexto recuperado."
         )
     lines.append("")
+    ranges = report.get("score_ranges")
+    if ranges:
+        lines.append("## Puntuaciones del rerank (evidencia para calibrar el umbral)")
+        for group, label in (("in_law", "Con base en la ley"), ("out_of_law", "Fuera de la ley")):
+            values = ranges[group]
+            lines.append(
+                f"- {label}: mínimo {values['min']:.3f}, mediana {values['median']:.3f}, "
+                f"máximo {values['max']:.3f} (n={int(values['count'])})"
+            )
+        lines.append(
+            "  - Un umbral por debajo del mínimo de las preguntas con base evita abstenerse "
+            "en preguntas respondibles; compáralo con el máximo de las que están fuera."
+        )
+        lines.append("")
+
     lines.append("## Peores casos")
     if report["worst_cases"]:
         for case in report["worst_cases"]:
@@ -302,6 +323,34 @@ def _goal_lines(report: dict[str, Any]) -> list[str]:
             "contexto recuperado; revisar la validación de citas."
         )
     return lines
+
+
+def score_ranges(results: Sequence[QuestionResult]) -> dict[str, dict[str, float]]:
+    """Best rerank score spread per group, to calibrate the abstention threshold.
+
+    Reported, never used to decide anything here: choosing a threshold is a
+    product decision the operator makes from this evidence.
+    """
+
+    def summarize(group: Sequence[QuestionResult]) -> dict[str, float]:
+        scores = sorted(r.best_score for r in group if r.best_score is not None)
+        if not scores:
+            return {"min": 0.0, "median": 0.0, "max": 0.0, "count": 0.0}
+        middle = len(scores) // 2
+        median = (
+            scores[middle] if len(scores) % 2 == 1 else (scores[middle - 1] + scores[middle]) / 2
+        )
+        return {
+            "min": scores[0],
+            "median": median,
+            "max": scores[-1],
+            "count": float(len(scores)),
+        }
+
+    return {
+        "in_law": summarize([r for r in results if not r.should_abstain]),
+        "out_of_law": summarize([r for r in results if r.should_abstain]),
+    }
 
 
 def _base_article(citation: str) -> str:

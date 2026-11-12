@@ -12,7 +12,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.adapters.llm import LLMClient, LLMError
-from app.config import Settings
+from app.config import Settings, get_settings
 from app.domain.citations import Citation
 from app.services import answers
 from app.services.retrieval import RetrievalResult, RetrievedChunk
@@ -102,7 +102,10 @@ async def test_a_best_score_equal_to_the_threshold_does_not_abstain(
 ) -> None:
     llm = FakeLLMClient(generation_responses=[_payload("La garantía es del 5 por 100 [art. 107].")])
 
-    result = await _answer(monkeypatch, llm, _retrieval([_chunk()], best_score=0.35))
+    # Derived from the configured threshold, so recalibrating it never turns a
+    # boundary test into a false failure.
+    threshold = get_settings().rerank_threshold
+    result = await _answer(monkeypatch, llm, _retrieval([_chunk()], best_score=threshold))
 
     assert result.abstencion is False
     assert llm.generation_calls == 1

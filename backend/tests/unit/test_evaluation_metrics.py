@@ -12,6 +12,7 @@ from app.services.evaluation import (
     build_report,
     question_record,
     recall_at_k,
+    render_markdown,
 )
 
 # --- recall@5 ---------------------------------------------------------------
@@ -263,7 +264,75 @@ def test_question_record_contains_every_audit_field() -> None:
         "citas": ["107", "999"],
         "abstencion": False,
         "warning": "aviso de validación",
+        "best_score": None,
     }
+
+
+def test_question_record_keeps_the_rerank_score_for_calibration() -> None:
+    result = QuestionResult(
+        id="P-03",
+        pregunta="pregunta P-03",
+        expected_articles=("107",),
+        should_abstain=False,
+        abstained=False,
+        citations=("107",),
+        retrieved_articles=("107",),
+        embeddings_articles=(),
+        best_score=0.4213,
+    )
+
+    assert question_record(result)["best_score"] == pytest.approx(0.4213)
+
+
+def test_report_splits_rerank_scores_by_group_for_calibration() -> None:
+    in_law = [
+        QuestionResult(
+            id="P-01",
+            pregunta="pregunta P-01",
+            expected_articles=("193",),
+            should_abstain=False,
+            abstained=False,
+            citations=("193",),
+            retrieved_articles=("193",),
+            best_score=0.91,
+        ),
+        QuestionResult(
+            id="P-02",
+            pregunta="pregunta P-02",
+            expected_articles=("77",),
+            should_abstain=False,
+            abstained=False,
+            citations=("77",),
+            retrieved_articles=("77",),
+            best_score=0.33,
+        ),
+    ]
+    out_of_law = [
+        QuestionResult(
+            id="P-21",
+            pregunta="pregunta P-21",
+            expected_articles=(),
+            should_abstain=True,
+            abstained=True,
+            citations=(),
+            retrieved_articles=(),
+            embeddings_articles=(),
+            best_score=0.05,
+        )
+    ]
+
+    report = build_report([*in_law, *out_of_law])
+    assert report["score_ranges"]["in_law"] == {
+        "min": pytest.approx(0.33),
+        "median": pytest.approx(0.62),
+        "max": pytest.approx(0.91),
+        "count": 2.0,
+    }
+    assert report["score_ranges"]["out_of_law"]["max"] == pytest.approx(0.05)
+
+    markdown = render_markdown(report, fecha="2026-11-12", corpus="LCSP")
+    assert "Puntuaciones del rerank" in markdown
+    assert "0.330" in markdown
 
 
 def test_question_record_of_an_abstention_has_no_citations() -> None:

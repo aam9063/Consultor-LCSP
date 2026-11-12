@@ -16,7 +16,9 @@ def test_settings_expose_the_stack_defaults() -> None:
     assert settings.embedding_model == "qwen3-embedding"
     assert settings.rerank_model == "rerank"
     assert settings.embedding_dimensions == 4096
-    assert settings.rerank_threshold == pytest.approx(0.35)
+    # Calibrated on real rerank scores: answerable questions >= 0.958,
+    # out-of-law questions <= 0.757.
+    assert settings.rerank_threshold == pytest.approx(0.85)
     assert settings.retrieval_top_k == 6
 
 
