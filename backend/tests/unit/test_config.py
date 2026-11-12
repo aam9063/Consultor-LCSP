@@ -31,3 +31,23 @@ def test_settings_read_the_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     assert settings.nan_api_key.get_secret_value() == "sk-test"
     assert settings.chat_model == "qwen3.6"
     assert "sk-test" not in repr(settings)
+
+
+def test_the_test_database_url_is_part_of_the_configuration() -> None:
+    # The integration conftest reads it through Settings so a value in the
+    # local environment file counts, not only an exported variable.
+    settings = make_settings()
+
+    assert settings.database_url_test == ""
+
+
+def test_the_test_database_url_can_come_from_the_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(
+        "DATABASE_URL_TEST", "postgresql+asyncpg://lcsp:lcsp@localhost:5433/lcsp_test"
+    )
+
+    settings = make_settings()
+
+    assert settings.database_url_test.endswith("/lcsp_test")

@@ -3,13 +3,17 @@ from collections.abc import AsyncGenerator
 
 import pytest
 
+from app.config import get_settings
+
 pytestmark = pytest.mark.integration
 
 # Integration tests truncate the corpus tables to keep retrieval deterministic.
 # If they run against the working database, every `pytest tests/integration`
 # destroys the ingested statute and the embeddings already paid for, so they
 # require an explicit dedicated database instead of falling back silently.
-_TEST_DATABASE_URL = os.environ.get("DATABASE_URL_TEST", "").strip()
+# Read through Settings, so the value can live in the local environment file as
+# well as in the shell.
+_TEST_DATABASE_URL = get_settings().database_url_test.strip()
 if not _TEST_DATABASE_URL:
     pytest.exit(
         "Integration tests need a dedicated database: set DATABASE_URL_TEST "
@@ -23,7 +27,7 @@ if not _TEST_DATABASE_URL:
 # database is enough for every module that builds an engine later.
 os.environ["DATABASE_URL"] = _TEST_DATABASE_URL
 
-from app.db.session import dispose_engine  # noqa: E402  (after the guard on purpose)
+from app.db.session import dispose_engine  # noqa: E402  (after DATABASE_URL is fixed)
 
 
 @pytest.fixture(autouse=True)
