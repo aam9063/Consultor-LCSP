@@ -22,6 +22,18 @@ if not _TEST_DATABASE_URL:
         returncode=2,
     )
 
+# The tests must never point at the database the application works with: that is
+# exactly how the ingested corpus gets destroyed. Checking presence is not
+# enough, because a value that duplicates DATABASE_URL passes the first guard.
+_WORKING_DATABASE_URL = get_settings().database_url.strip()
+if _TEST_DATABASE_URL == _WORKING_DATABASE_URL:
+    pytest.exit(
+        "DATABASE_URL_TEST points at the working database. The integration "
+        "suites truncate the corpus, so it must name a different database "
+        "(for example .../lcsp_test).",
+        returncode=2,
+    )
+
 # The environment wins over the local environment file, which is exactly what
 # the application settings already do, so pointing DATABASE_URL at the test
 # database is enough for every module that builds an engine later.
