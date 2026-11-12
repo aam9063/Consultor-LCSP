@@ -10,18 +10,17 @@
       "193",
       "194",
       "264",
-      "29",
       "211",
+      "29",
       "192"
     ],
     "citas": [
       "193",
-      "194",
-      "211",
-      "29"
+      "194"
     ],
     "abstencion": false,
-    "warning": "Algunas afirmaciones de la respuesta no llevan ninguna cita que las respalde."
+    "warning": "Algunas afirmaciones de la respuesta no llevan ninguna cita que las respalde.",
+    "best_score": 0.998248815536499
   },
   {
     "id": "P-02",
@@ -41,7 +40,8 @@
       "92"
     ],
     "abstencion": false,
-    "warning": "Afirmaciones con citas no respaldadas por el contexto recuperado: [art. 77.1], [art. 74.1], [art. 86.2]."
+    "warning": "Afirmaciones con citas no respaldadas por el contexto recuperado: [art. 77.1], [art. 74.1], [art. 86.2].",
+    "best_score": 0.9989498257637024
   },
   {
     "id": "P-03",
@@ -49,10 +49,20 @@
     "articulos_esperados": [
       "107"
     ],
-    "articulos_recuperados": [],
-    "citas": [],
-    "abstencion": true,
-    "warning": null
+    "articulos_recuperados": [
+      "107",
+      "106",
+      "109",
+      "114",
+      "110",
+      "108"
+    ],
+    "citas": [
+      "107"
+    ],
+    "abstencion": false,
+    "warning": "Algunas afirmaciones de la respuesta no llevan ninguna cita que las respalde.",
+    "best_score": 0.9980332255363464
   },
   {
     "id": "P-04",
@@ -69,10 +79,12 @@
       "159"
     ],
     "citas": [
+      "118",
       "318"
     ],
     "abstencion": false,
-    "warning": "Afirmaciones con citas no respaldadas por el contexto recuperado: [art. 118.1], [art. 118.3], [art. 118.4]."
+    "warning": "Algunas afirmaciones de la respuesta no llevan ninguna cita que las respalde.",
+    "best_score": 0.9918935894966125
   },
   {
     "id": "P-05",
@@ -93,7 +105,8 @@
       "159.6"
     ],
     "abstencion": false,
-    "warning": null
+    "warning": "Afirmaciones con citas no respaldadas por el contexto recuperado: [art. 159.2].",
+    "best_score": 0.9960082769393921
   },
   {
     "id": "P-06",
@@ -112,11 +125,13 @@
     "citas": [
       "145.1",
       "145.2",
+      "146",
       "145.5",
       "145.3"
     ],
     "abstencion": false,
-    "warning": "Afirmaciones con citas no respaldadas por el contexto recuperado: [art. 146.1], [art. 146.2]."
+    "warning": "Afirmaciones con citas no respaldadas por el contexto recuperado: [art. 145.4].",
+    "best_score": 0.957932710647583
   },
   {
     "id": "P-07",
@@ -133,14 +148,15 @@
       "149"
     ],
     "citas": [
-      "149.1",
       "149.2",
+      "149.1",
       "149.4",
       "149.6",
       "149.5"
     ],
     "abstencion": false,
-    "warning": null
+    "warning": null,
+    "best_score": 0.9990614056587219
   },
   {
     "id": "P-08",
@@ -149,10 +165,18 @@
       "215",
       "216"
     ],
-    "articulos_recuperados": [],
+    "articulos_recuperados": [
+      "215",
+      "215",
+      "296",
+      "214",
+      "32",
+      "DA51"
+    ],
     "citas": [],
     "abstencion": true,
-    "warning": null
+    "warning": null,
+    "best_score": 0.9755797982215881
   },
   {
     "id": "P-09",
@@ -169,10 +193,12 @@
       "317"
     ],
     "citas": [
-      "19.1"
+      "21",
+      "19"
     ],
     "abstencion": false,
-    "warning": "Afirmaciones con citas no respaldadas por el contexto recuperado: [art. 21.1]."
+    "warning": null,
+    "best_score": 0.9966573715209961
   },
   {
     "id": "P-10",
@@ -185,14 +211,16 @@
       "21",
       "20",
       "19",
-      "318",
-      "23"
+      "23",
+      "318"
     ],
     "citas": [
-      "19.1"
+      "22",
+      "19"
     ],
     "abstencion": false,
-    "warning": "Afirmaciones con citas no respaldadas por el contexto recuperado: [art. 22.1], [art. 22.2]."
+    "warning": "Algunas afirmaciones de la respuesta no llevan ninguna cita que las respalde.",
+    "best_score": 0.9938222169876099
   },
   {
     "id": "P-11",
@@ -209,10 +237,13 @@
       "174"
     ],
     "citas": [
-      "159.4"
+      "106",
+      "159",
+      "114"
     ],
     "abstencion": false,
-    "warning": "Afirmaciones con citas no respaldadas por el contexto recuperado: [art. 106.1], [art. 106.2], [art. 114.1], [art. 114.2]."
+    "warning": null,
+    "best_score": 0.9989866614341736
   },
   {
     "id": "P-12",
@@ -226,17 +257,17 @@
       "278",
       "29",
       "29",
-      "29"
+      "35"
     ],
     "citas": [
       "29.2",
       "29.4",
-      "29.5",
-      "29.8",
-      "29.6"
+      "29.6",
+      "29.8"
     ],
     "abstencion": false,
-    "warning": null
+    "warning": null,
+    "best_score": 0.9989733695983887
   },
   {
     "id": "P-13",
@@ -253,12 +284,14 @@
       "72"
     ],
     "citas": [
-      "71",
+      "71.1",
       "73",
-      "72"
+      "65",
+      "72.6"
     ],
     "abstencion": false,
-    "warning": "Algunas afirmaciones de la respuesta no llevan ninguna cita que las respalde."
+    "warning": "Algunas afirmaciones de la respuesta no llevan ninguna cita que las respalde.",
+    "best_score": 0.9991855025291443
   },
   {
     "id": "P-14",
@@ -276,14 +309,15 @@
     ],
     "citas": [
       "87.1",
-      "87",
       "87.3",
-      "92",
       "86",
-      "74"
+      "92",
+      "74",
+      "65"
     ],
     "abstencion": false,
-    "warning": null
+    "warning": "Algunas afirmaciones de la respuesta no llevan ninguna cita que las respalde.",
+    "best_score": 0.9985988736152649
   },
   {
     "id": "P-15",
@@ -301,11 +335,14 @@
     ],
     "citas": [
       "101.1",
+      "116",
       "101.5",
-      "101.7"
+      "101.7",
+      "101.3"
     ],
     "abstencion": false,
-    "warning": "Afirmaciones con citas no respaldadas por el contexto recuperado: [art. 101.2], [art. 116.4]."
+    "warning": "Algunas afirmaciones de la respuesta no llevan ninguna cita que las respalde.",
+    "best_score": 0.9959467053413391
   },
   {
     "id": "P-16",
@@ -313,10 +350,21 @@
     "articulos_esperados": [
       "153"
     ],
-    "articulos_recuperados": [],
-    "citas": [],
-    "abstencion": true,
-    "warning": null
+    "articulos_recuperados": [
+      "153",
+      "37",
+      "165",
+      "35",
+      "36",
+      "116"
+    ],
+    "citas": [
+      "153",
+      "35"
+    ],
+    "abstencion": false,
+    "warning": "Algunas afirmaciones de la respuesta no llevan ninguna cita que las respalde.",
+    "best_score": 0.9982215762138367
   },
   {
     "id": "P-17",
@@ -333,10 +381,14 @@
       "186"
     ],
     "citas": [
-      "168"
+      "168",
+      "131",
+      "170",
+      "135"
     ],
     "abstencion": false,
-    "warning": "Afirmaciones con citas no respaldadas por el contexto recuperado: [art. 135.1], [art. 170.1], [art. 131.2]."
+    "warning": "Algunas afirmaciones de la respuesta no llevan ninguna cita que las respalde.",
+    "best_score": 0.9949027299880981
   },
   {
     "id": "P-18",
@@ -347,8 +399,8 @@
     "articulos_recuperados": [
       "198",
       "199",
-      "216",
       "210",
+      "216",
       "292",
       "306"
     ],
@@ -357,7 +409,8 @@
       "199"
     ],
     "abstencion": false,
-    "warning": "Algunas afirmaciones de la respuesta no llevan ninguna cita que las respalde."
+    "warning": null,
+    "best_score": 0.9986250400543213
   },
   {
     "id": "P-19",
@@ -365,10 +418,25 @@
     "articulos_esperados": [
       "211"
     ],
-    "articulos_recuperados": [],
-    "citas": [],
-    "abstencion": true,
-    "warning": null
+    "articulos_recuperados": [
+      "211",
+      "313",
+      "279",
+      "245",
+      "193",
+      "212"
+    ],
+    "citas": [
+      "211",
+      "193",
+      "212",
+      "245",
+      "313",
+      "279"
+    ],
+    "abstencion": false,
+    "warning": null,
+    "best_score": 0.9994531273841858
   },
   {
     "id": "P-20",
@@ -377,54 +445,105 @@
       "243",
       "244"
     ],
-    "articulos_recuperados": [],
-    "citas": [],
-    "abstencion": true,
-    "warning": null
+    "articulos_recuperados": [
+      "243",
+      "244",
+      "256",
+      "210",
+      "300",
+      "305"
+    ],
+    "citas": [
+      "243",
+      "244"
+    ],
+    "abstencion": false,
+    "warning": null,
+    "best_score": 0.9813621640205383
   },
   {
     "id": "P-21",
     "pregunta": "¿Qué tipo de IVA se aplica a una obra de reforma en una vivienda?",
     "articulos_esperados": [],
-    "articulos_recuperados": [],
+    "articulos_recuperados": [
+      "232",
+      "DA13",
+      "242",
+      "13",
+      "DF10",
+      "241"
+    ],
     "citas": [],
     "abstencion": true,
-    "warning": null
+    "warning": null,
+    "best_score": 0.7219973206520081
   },
   {
     "id": "P-22",
     "pregunta": "¿Cuántos días de vacaciones le corresponden por ley a un trabajador al año?",
     "articulos_esperados": [],
-    "articulos_recuperados": [],
+    "articulos_recuperados": [
+      "DA12",
+      "29",
+      "29",
+      "29",
+      "297",
+      "137"
+    ],
     "citas": [],
     "abstencion": true,
-    "warning": null
+    "warning": null,
+    "best_score": 0.0002549835480749607
   },
   {
     "id": "P-23",
     "pregunta": "¿A partir de qué edad puede jubilarse un trabajador y con qué porcentaje de su base reguladora?",
     "articulos_esperados": [],
-    "articulos_recuperados": [],
+    "articulos_recuperados": [
+      "100",
+      "DF8",
+      "103",
+      "DF16",
+      "129",
+      "130"
+    ],
     "citas": [],
     "abstencion": true,
-    "warning": null
+    "warning": null,
+    "best_score": 0.00025796066620387137
   },
   {
     "id": "P-24",
     "pregunta": "¿Qué obligaciones tiene una empresa para cumplir el RGPD en el tratamiento de datos personales?",
     "articulos_esperados": [],
-    "articulos_recuperados": [],
+    "articulos_recuperados": [
+      "DA25",
+      "342",
+      "343",
+      "339",
+      "67",
+      "288"
+    ],
     "citas": [],
     "abstencion": true,
-    "warning": null
+    "warning": null,
+    "best_score": 0.73142409324646
   },
   {
     "id": "P-25",
     "pregunta": "¿En qué plazo debe el arrendador devolver la fianza al terminar el contrato de alquiler?",
     "articulos_esperados": [],
-    "articulos_recuperados": [],
+    "articulos_recuperados": [
+      "111",
+      "298",
+      "109",
+      "29",
+      "158",
+      "307"
+    ],
     "citas": [],
     "abstencion": true,
-    "warning": null
+    "warning": null,
+    "best_score": 0.7528488636016846
   }
 ]

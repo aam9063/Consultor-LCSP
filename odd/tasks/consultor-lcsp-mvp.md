@@ -96,7 +96,7 @@ Otras leyes o normativa (solo LCSP consolidada); descarga automática del BOE en
 | CL-05 | Generación con citas, validación y abstención | S3, S12, S13 | `0e8f1ff`, `19ee890` | hecho |
 | CL-06 | Revisor de cláusulas | S4, S14 | `76bad65`, `2968a8b` | hecho |
 | CL-07 | Frontend: consulta con chips y panel, revisor, historial | S5, S15 | `cca1d58`, `1fc24af`, `b27bd43`, `4341dab` | hecho |
-| CL-08 | Set de 25 preguntas y evaluación | S6, S16 | pendiente | — |
+| CL-08 | Set de 25 preguntas y evaluación | S6, S16 | `a45ef22`, `170b31d`, `d5826d6` | hecho |
 | CL-09 | README y cierre de la Fase 1 | S18 | pendiente | — |
 
 ## Evidencias de verificación
@@ -307,11 +307,37 @@ Slice de 4 commits, delegado y verificado con capturas por el orquestador.
 - **Segunda revisión del slice de avisos** (lineage `review-f05afb069150ce72`, tier `medium`, 1 lente `reliability`, 4 ficheros, 77 líneas): `approved` con authority quemada. Un único hallazgo `SUGGESTION` (`R3-001` en `ConsultaView.tsx:26-27`, informativo). Sin correcciones, sin refutador.
 - **Avisos atendidos** en `a26d52c` (decisión de Albert): `R3-002` corregido con test propio (la selección del panel pertenece a la consulta mostrada y vuelve al placeholder al cambiar de respuesta) y `R3-003` corregido (puerto del e2e por `PLAYWRIGHT_PORT` y `reuseExistingServer: false`, verificado con el puerto por defecto y con 5301). `R3-004` queda como sugerencia menor.
 
+### AC-10 · Evaluación (cerrado con datos reales)
+
+Tres corridas sobre el corpus real (580 chunks, `qwen3-embedding` + `rerank` + `deepseek-v4-flash`):
+
+| Corrida | Set | Umbral | Recall@5 | Citas válidas | Abstención |
+| --- | --- | --- | --- | --- | --- |
+| 1 | original (títulos casi literales) | 0,35 | 100% | 90% | 5/5 |
+| 2 | endurecido | 0,35 | 75% (artefacto) | 100% | 5/5 |
+| 3 | endurecido | **0,85 calibrado** | **97,5%** | **100%** | **5/5** |
+
+**Objetivos AC-10: cumplidos** — recall@5 ≥ 85% (97,5%), citas válidas ≥ 95% (100%), abstención correcta ≥ 4/5 (5/5).
+
+**Hallazgo central (BRIEF §12):** el recall híbrido es **idéntico al de solo embeddings** (97,5% ambos, +0,00). Con este corpus, RRF + rerank no aportan nada medible. Interpretación honesta: 580 chunks de artículo completo son lexicamente ricos, `top_k=6` es generoso y la búsqueda exacta de pgvector ya resuelve. Para demostrar valor del híbrido haría falta un corpus mayor, chunks más finos o preguntas donde el léxico y la semántica discrepen. Queda como propuesta, no como deuda oculta.
+
+**Casos no perfectos**
+
+- `P-08` (subcontratación, espera 215 y 216): el 216 no entró en el top-5 y el **modelo** se abstuvo pese a `best_score=0,9756`, por encima del umbral. Es abstención del LLM, no del umbral: la única "abstención indebida" del informe.
+- El top-5 de `P-08` trae el 215 dos veces: el artículo se parte en dos chunks (supera los 1.500 tokens).
+
+**Historia de defectos que destapó la evaluación**
+
+1. Citas 90% → el sistema entregaba respuestas sin ninguna cita respaldada (corregido: ahora abstiene).
+2. Recall 75% frente a 97,5% de embeddings → **artefacto de medición**: el recall se calculaba sobre los chunks de la respuesta, vacíos al abstener (corregido: recuperación medida aparte).
+3. `rerank_threshold = 0,35` inventado → abstenía en 5 de 20 preguntas válidas y dejaba pasar 4 de 5 fuera de la ley. Calibrado a 0,85 con la distribución real (con base legal: mín 0,958; fuera de la ley: máx 0,757).
+4. `evals/run.py` roto por un string mal escapado que los gates no veían: `ruff`/`mypy` no cubrían `evals/` (corregido en CI y AGENTS.md).
+
 ## Progreso y siguiente paso
 
-- Progreso: 7/9 tareas implementadas y verificadas (CL-01 RDD cerrado por abandono autorizado; CL-02 a CL-06 con RDD `medium` diferido; CL-07 con revisión nativa `approved`).
+- Progreso: 8/9 tareas implementadas y verificadas; CL-08 cerrada con AC-10 cumplido y revisión nativa `approved`.
 - RDD pendiente: (a) aplicar la corrección de `R4-async-singleton-race` (cerrojo async en la inicialización del engine, con test), (b) decidir si los dos mockups entran en la candidata, (c) revisar los slices `web` e `infra`.
-- Siguiente paso: CL-08 (set de 25 preguntas y evaluación con la API real). Requiere decisión de Albert sobre gastar cuota.
+- Siguiente paso: CL-09 (README con las métricas reales, borrador de PR y revisión 4R del slice completo).
 - Trabajo posterior anotado: los tres avisos del revisor (`R3-002`, `R3-003`, `R3-004`); el e2e del CI solo se ejercita en un PR.
 - Pendiente de decisión: endurecer `NanLLMClient` para errores de conexión/timeout antes de la carga real de 37 lotes.
 
