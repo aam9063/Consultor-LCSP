@@ -90,7 +90,7 @@ Otras leyes o normativa (solo LCSP consolidada); descarga automática del BOE en
 | ID | Tarea | Specs | Ruta | Commit |
 | --- | --- | --- | --- | --- |
 | CL-01 | Esqueleto del monorepo, Docker Compose con pgvector, `/health`, CI mínimo | S1(parcial), S7, S17 | pendiente | — |
-| CL-02 | Parser de la LCSP y modelo `chunk` | S1, S8 | pendiente | — |
+| CL-02 | Parser de la LCSP y modelo `chunk` | S1, S8 | `1c301ec`, `ada8854` | hecho |
 | CL-03 | Ingesta idempotente con embeddings y `tsvector` | S1, S2, S9 | pendiente | — |
 | CL-04 | Recuperación híbrida, RRF, rerank y búsqueda por número | S2, S10, S11 | pendiente | — |
 | CL-05 | Generación con citas, validación y abstención | S3, S12, S13 | pendiente | — |
@@ -150,9 +150,35 @@ Otras leyes o normativa (solo LCSP consolidada); descarga automática del BOE en
 - **Corrección aplicada** (2026-11-12): `fix(api)` guarda la inicialización del engine con `threading.Lock`. RED: con el cerrojo neutralizado se crean 4 engines para 4 hilos; GREEN: 1 engine y la misma factory (`tests/unit/test_db_session.py`, 2 tests). Checks en verde de nuevo.
 - La lineage `review-3d828745be58ead1` quedó **stale**: al volver a la rama, el candidato pasó a ser todo el andamiaje (53 ficheros) y el `STATUS` respondió `action: recover`, `action_disposition: scope_changed`. Revisar slices por checkout detached no es compatible con la proyección de workspace que exige el revisor; el slice API no pudo cerrarse nativamente.
 
+### CL-02 · Parser de la LCSP y modelo `chunk`
+
+Slice de 2 commits (~1.300 líneas), delegado a `gentle-ai-worker` y verificado por el orquestador.
+
+- `1c301ec` feat(domain): parser puro (solo stdlib) → `LcspChunk` con número, título, ruta, apartado, URL con ancla y fecha de versión; un chunk por artículo; corte por apartado solo si supera ~1.500 tokens.
+- `ada8854` feat(db): modelos `Fuente`/`Chunk`, migraciones `0002` y `0003`, `tsv` generado, `vector(4096)` y clave única de expresión `(fuente_id, articulo, coalesce(apartado,''))`.
+
+**TDD observado** (RED del worker): `ModuleNotFoundError: app.domain.lcsp_parser`, `ImportError: app.db.models`, y en mi verificación `assert 0 == 1` para la configuración `spanish_unaccent`. GREEN: 16 unitarios, 3 de integración, 1 de datos.
+
+**Verificación del orquestador (no delegada)**
+
+- `ruff`, `ruff format --check`, `mypy --strict`: en verde (27 ficheros).
+- `uv run pytest` → 16; `uv run pytest tests/integration` → 3; `uv run pytest tests/data` → 1.
+- Migraciones aplicadas contra Postgres 18 real: `alembic upgrade head` + `alembic downgrade 0002` + `upgrade head` limpios. `\d chunk` confirma `tsv` generado con `to_tsvector('spanish_unaccent', texto)`, índice GIN, `vector(4096)` y la clave única.
+- Ingesta completa de los 580 chunks en la base real: 580 filas, 580 con `tsv` generado, duplicado rechazado por la clave única (idempotencia lista para CL-03), limpieza posterior a 0 filas.
+- Parser sobre el fichero real: 580 chunks, 180 con apartado, 0 duplicados `(articulo, apartado)`, art. 107 → ancla `#a1-19`, fecha `2018-03-09`.
+
+**RDD:** `assess --base-ref 0c4138b --committed-only` → **`medium`** (926 líneas, `review_due: false`, `under_budget`; motivo `executable_change` en `backend/app/db/models.py`). Según AGENTS §5 se difiere al cierre del slice de la feature.
+
+**Hallazgos de la verificación y qué se hizo**
+
+- **Codificación:** el XML del BOE es **UTF-8 válido** (verificado byte a byte: 0 bytes `0xF3`, 16.693 secuencias `ó` correctas). Mi diagnóstico previo de «latin-1» era un artefacto de la consola. Corregido `data/lcsp/README.md` y el docstring del parser; el fallback latin-1 queda solo como red de seguridad.
+- **Defecto real corregido:** la configuración `spanish` de Postgres stematiza `garantía` → `garant` y `garantia` → `garanti`, así que una pregunta sin tildes devolvía 0 resultados. Migración `0003` crea `unaccent` + configuración `spanish_unaccent` (`COPY = spanish` con mapeo `unaccent, spanish_stem`) y el `tsv` pasa a usarla. Fijado con 2 tests de integración (configuración instalada y consulta sin tildes contra texto acentuado).
+- **Anclas:** los `id` del BOE no son correlativos (`art. 107` = `a1-19`); el parser usa el `id` del bloque, nunca un número construido.
+- **Disposiciones:** identidad sintética `DA1…DA58`, `DT1-6`, `DD1`, `DF1-16` por orden documental, con el ordinal completo en `titulo`. Aceptado: AC-04 solo exige recuperación por número de artículo.
+
 ## Progreso y siguiente paso
 
-- Progreso: 1/9 tareas implementada y verificada (CL-01); RDD abierto con una corrección acotada pendiente.
+- Progreso: 2/9 tareas implementadas y verificadas (CL-01 con RDD cerrado por abandono autorizado, CL-02 con la corrección del `tsv` incluida).
 - RDD pendiente: (a) aplicar la corrección de `R4-async-singleton-race` (cerrojo async en la inicialización del engine, con test), (b) decidir si los dos mockups entran en la candidata, (c) revisar los slices `web` e `infra`.
 - Siguiente paso: arrancar CL-02 (parser de la LCSP) en cuanto se cierre la revisión de CL-01.
 
@@ -163,3 +189,5 @@ Otras leyes o normativa (solo LCSP consolidada); descarga automática del BOE en
 - **L3 (hecho, 2026-11-12):** leídos `BRIEF.md` y `AGENTS.md` completos; entorno verificado: uv 0.12.10, Python 3.14.5, Node v24.22.1, pnpm 11.4.0, Docker 29.9.3, RDD on. Repo sin commits, sin ramas locales, remoto `github.com/aam9063/Consultor-LCSP` vacío.
 - **L4 (decisión de Albert, 2026-11-12):** bootstrap de Git = commit inicial en `main` (AGENTS.md, BRIEF.md, `.gitignore`), luego `dev` y trabajo en `feat/cl-01-skeleton`. Ejecutado: `2225e7b` en `main`, `dev` y `feat/cl-01-skeleton` desde ahí.
 - **L5 (hallazgo, 2026-11-12):** aparecen sin commitear `frontend/docs/mock/LcspConsulta.dc.html` y `frontend/docs/mock/LcspRevisor.dc.html` (mockups de la UI, no generados por el agente). Quedan fuera de los commits de CL-01 a la espera de decisión.
+- **L6 (decisión de Albert, 2026-11-12):** los dos mockups se excluyen de la candidata de revisión; `.env.example` se versiona (el fichero lo crea Albert, sin secretos). La lineage `review-3d828745be58ead1` se abandona con `operator_disposition` y queda en cuarentena.
+- **L7 (corrección propia, 2026-11-12):** el XML del BOE es UTF-8 válido; el diagnóstico anterior de ISO-8859-1 era un artefacto de la consola. Corregidos `data/lcsp/README.md` y el docstring del parser.

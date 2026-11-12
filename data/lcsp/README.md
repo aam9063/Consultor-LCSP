@@ -16,14 +16,16 @@ curl -L -H 'Accept: application/xml' \
 - Sin la cabecera `Accept: application/xml` el BOE responde `400` ("No soportado ningún mime
   type de la cabecera Accept").
 - Tamaño aproximado: 1,9 MB.
-- **Trampa conocida:** el fichero declara `encoding="utf-8"` pero sus bytes están en
-  **ISO-8859-1**. Decodificar siempre con `latin-1` explícito; si se confía en la declaración,
-  el parseo falla.
+- **Codificación:** verificado byte a byte, el fichero es **UTF-8 válido** (declara `utf-8` y
+  lo cumple). Ojo con el diagnóstico: si la consola muestra `Secci?n`, es el terminal, no el
+  dato. El parser decodifica `utf-8` y cae a `latin-1` solo como red de seguridad por si el
+  BOE cambia el export.
 - Estructura relevante: `<response><data><texto>` y dentro `<bloque>` con
   `tipo="nota_inicial" | "preambulo" | "encabezado" | "precepto" | "firma"`. Cada `precepto`
   lleva `id="a107"` (ancla del BOE) y `titulo="Artículo 107"`; los `encabezado` son
   TÍTULO/CAPÍTULO/Sección. La fecha de la versión consolidada está en
-  `<version fecha_vigencia="...">`.
+  `<version fecha_vigencia="...">`. Los `id` **no** son correlativos (`Artículo 107` es
+  `a1-19`), así que el ancla se toma del `id` del bloque, nunca construida a mano.
 
 ## PDF consolidado (solo referencia humana)
 
