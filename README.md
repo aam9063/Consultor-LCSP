@@ -81,11 +81,17 @@ Definitive run over the real corpus (580 chunks, real embeddings, real rerank an
 | Answers with every citation valid | **100%** | ≥ 95% ✅ |
 | Correct abstention | **5/5** | ≥ 4/5 ✅ |
 
-**Honest caveat:** the hybrid ranking scored exactly the same as embeddings alone (97.5% both,
-+0.00), so Reciprocal Rank Fusion and the reranker add nothing measurable on this corpus. With
-article-sized chunks, a generous `top_k` and only 580 chunks, exact vector search already lands
-the right article. Proving the value of the hybrid layer would need a larger corpus, finer chunks
-or questions where vocabulary and meaning disagree. The full history of the three runs — including
+**Where the hybrid layer pays off.** Recall@5 is identical for both modes (97.5%), but that metric
+is blind to ordering. Measuring the retrieval itself, without generation, over the same 20 questions:
+
+| Mode | Recall@5 | Hit@1 | MRR |
+| --- | --- | --- | --- |
+| Hybrid (vector + full text + RRF + rerank) | 97.5% | **95.0%** | **0.967** |
+| Embeddings only | 97.5% | 80.0% | 0.892 |
+
+So Reciprocal Rank Fusion and the reranker buy **position**, not coverage: the right article is first
+in 95% of questions instead of 80%, which is exactly what a citation-first interface needs. This
+corrects an earlier conclusion drawn from `recall@5` alone. The full history of the runs — including
 two measurement defects found and fixed — is in `odd/tasks/consultor-lcsp-mvp.md`.
 
 ## Data
