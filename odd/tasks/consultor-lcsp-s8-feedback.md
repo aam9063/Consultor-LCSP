@@ -55,20 +55,40 @@ Autenticación o identificación de usuario; moderación de comentarios; métric
 
 | ID | Tarea | Specs | Ruta | Commit |
 | --- | --- | --- | --- | --- |
-| FB-01 | Modelo `feedback`, migración y migración inversa | S1, S2, S3 | pendiente | — |
-| FB-02 | `POST /feedback` y `GET /feedback` con validación tipada | S4, S3 | pendiente | — |
-| FB-03 | Comando de exportación a YAML para anotar | S5 | pendiente | — |
-| FB-04 | Botones de voto en la vista de consulta | S6 | pendiente | — |
-| FB-05 | Documento de aprendizaje y cierre | S7 | pendiente | — |
+| FB-01 | Modelo `feedback`, migración y migración inversa | S1, S2, S3 | `52a0f57` | hecho |
+| FB-02 | `POST /feedback` y `GET /feedback` con validación tipada | S4, S3 | `52a0f57`, `4f406ff` | hecho |
+| FB-03 | Comando de exportación a YAML para anotar | S5 | `52a0f57` | hecho |
+| FB-04 | Botones de voto en la vista de consulta | S6 | `dc3e3c6` | hecho |
+| FB-05 | Documento de aprendizaje y cierre | S7 | ver commit de cierre | hecho |
 
 ## Evidencias de verificación
 
 Se rellena por tarea: test escrito, RED, GREEN, checks y hash del commit.
 
+## Evidencias de verificación
+
+- **Backend**: `pytest` 181, `pytest tests/integration` 33, `mypy --strict` 66 ficheros, migración
+  `0004` con ida y vuelta verificadas. En ejecución: primer POST `actualizado: false`, segundo POST
+  con la misma pregunta y respuesta → mismo `id`, `actualizado: true`, voto cambiado; `limit=0` y
+  `limit=abc` → 422 tipado; `limit=50` → 200.
+- **Frontend**: `pnpm lint`, `typecheck`, `test` (12), `build`, `format:check`, `e2e` (3) en verde.
+- **Documento de aprendizaje**: `docs/aprendizaje/S8-feedback.md`.
+
+## RDD de S8
+
+- `assess` del slice desde `bd02c1c` → **medium** (1.359 líneas, cambio ejecutable en `api/feedback.py`).
+- Revisión nativa `review-75b83b53c4ea0bd7`, lentes `risk` + `reliability`, 16 ficheros. Tres
+  hallazgos: **R3-001 CRITICAL corroborado** por el refutador (el 422 de FastAPI rompía el sobre
+  tipado), R3-002 y R3-003 WARNING inferenciales.
+- Corrección acotada: **64 líneas de diff** sobre un presupuesto de 200, mapeada solo a R3-001, y
+  validada por un validador dirigido → **approved**, authority quemada.
+- **Trabajo posterior anotado**: R3-002 (Pydantic coacciona `"1"` a entero, saltándose la validación
+  explícita del `voto`) y R3-003 (el estado del botón persiste tras un fallo de envío).
+
 ## Progreso y siguiente paso
 
-- Progreso: 0/5. Feature document creado; branch `feat/lcsp-s8-feedback` desde `dev` (`bd02c1c`).
-- Siguiente paso: FB-01 y FB-04 en paralelo (superficies disjuntas: backend y frontend).
+- Progreso: 5/5 tareas. Feature cerrada con revisión nativa aprobada y documento de aprendizaje.
+- Siguiente paso: PR contra `dev`, CI en verde y merge commit.
 
 ## Log
 
