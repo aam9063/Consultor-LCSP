@@ -88,6 +88,15 @@ the right article. Proving the value of the hybrid layer would need a larger cor
 or questions where vocabulary and meaning disagree. The full history of the three runs — including
 two measurement defects found and fixed — is in `odd/tasks/consultor-lcsp-mvp.md`.
 
+## Data
+
+- Questions are processed by NaN Builders' API in the **European Union**. According to the
+  provider's FAQ, prompts and responses are not logged, the key is personal and non-transferable,
+  and no model is trained with your data.
+- What this application stores itself: the **votes** you submit on an answer (question, answer,
+  citations, model, vote, optional comment), so an annotated evaluation set can be grown. Nothing
+  else is persisted: no accounts, no session history.
+
 ## Configuration that matters
 
 - `RERANK_THRESHOLD` (default **0.85**): the abstention cut-off, **calibrated** against real
