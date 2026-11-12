@@ -116,14 +116,27 @@ Subagentes: solo con motivo explícito (exploración amplia, escritores en paral
 - Un commit = una unidad de trabajo coherente con sus tests. Nada de commits "wip" ni de mezclar refactor y feature.
 - Antes de cada commit: lint, tipos y tests del área tocada en verde.
 
-**Push (siempre preguntando)**
-- **Nunca hagas `git push` sin preguntar.** Pregunta exactamente: "¿Hago push de `<rama>` a `origin`?" y espera un sí explícito para esa rama.
+**Autorización permanente de Albert (2026-11-12)**
+
+Albert delegó explícitamente el ciclo completo de entrega. Mientras esta autorización siga vigente:
+
+1. **Push** de la rama de trabajo (`feat/*`, `fix/*`) a `origin` sin volver a preguntar.
+2. **Abrir la PR contra `dev`** (nunca contra `main`) con el borrador del feature document.
+3. **Vigilar el CI** de esa PR hasta verlo en verde; si falla, se diagnostica la causa raíz, se corrige y se vuelve a intentar. Nada se considera terminado con CI rojo.
+4. **Mergear a `dev`** cuando la PR esté en verde, con merge commit (no squash: los hashes de los commits son evidencia citada en el feature document).
+5. **Nunca mergear a `main`**, ni `dev` ni ninguna otra rama: eso sigue siendo decisión exclusiva de Albert.
+6. Al terminar el merge, **continuar con la siguiente tarea** del feature document, documentando en `docs/aprendizaje/<ID>-<slug>.md` según la sección 11.
+
+Esta autorización **no** incluye: force push, reescribir historia compartida, tocar `main`, saltarse TDD/RDD, ni desactivar gates.
+
+**Push (resto de casos)**
+- Cualquier otro push (rama ajena al ciclo, `dev`, `main`) sigue exigiendo pregunta explícita.
 - **Después de cada push, espera el run del CI.** No des una tarea por cerrada hasta ver ese run en verde: `gh run watch <run-id> --exit-status` (o `gh run list` para localizarlo). Si falla, lee `gh run view <run-id> --log-failed`, diagnostica la causa raíz, corrígela y vuelve a pushear y esperar. Un push sin run verde no es un push terminado.
 - Nunca `--force` ni `--force-with-lease`.
 - No actives los modos `YOLO`, `Super Yolo` ni `auto` de gentle-shell para saltarte esta regla: conceden push y PR por su cuenta.
 
-**Pull requests (las abre Albert)**
-- **Nunca abras PRs** (ni `gh pr create` ni la API de GitHub).
+**Pull requests**
+- Autorizadas contra `dev` según la autorización permanente de arriba. **Nunca** contra `main`.
 - Al cerrar una feature, deja en el feature document un borrador de PR en inglés: título, resumen, criterios de aceptación cubiertos, cómo probarlo y resultado de RDD.
 - Nunca hagas merge, rebase ni cherry-pick sobre `main` o `dev`.
 
