@@ -67,6 +67,37 @@ La revisión aprobó el slice con tres avisos que quedan anotados, con mi propia
 
 Ninguno abrió corrección: son mejoras de robustez, no defectos del comportamiento entregado.
 
+### Resolución de los tres avisos (2026-11-12, commit `ed069fa`)
+
+Los tres se resolvieron en un único work-unit commit de 33 líneas, con TDD donde hubo test ejecutable
+y equivalente funcional donde no (script de init y workflow de CI, excepción documentada en AGENTS §4):
+
+- `R3-002` → guardia explícito en `docker/postgres-init/10-test-database.sh`: consulta
+  `pg_database` y crea solo si no existe. **RED observado contra el Postgres real** (base `lcsp_test`
+  ya existente): `ERROR: database "lcsp_test" already exists`, `exit=1`. **GREEN**: `exit=0` y la base
+  intacta (el guardia salta la creación, no la recrea: `alembic_version` sigue poblada).
+- `R3-003` → validación con regex `[A-Za-z0-9_]+` en el paso de CI antes de interpolar el nombre en
+  el identificador entrecomillado. **RED observado, peor de lo previsto**: con el nombre malformado
+  `lcsp_test;` el paso actual no fallaba — **creaba silenciosamente una base basura** llamada
+  `lcsp_test;` (Postgres acepta `;` dentro de comillas dobles) y salía con `exit=0`. El riesgo real no
+  era el error crudo sino el éxito silencioso. Artefacto eliminado tras el experimento (estaba vacío)
+  y estado restaurado. **GREEN**: nombre inválido → `exit=1` con mensaje claro, sin crear nada;
+  nombre válido → `exit=0` sin cambios.
+- `R3-001` → `conftest.py` reestructurado en dos pasos comentados (guardia, luego asignación).
+  Refactor de legibilidad sin cambio de comportamiento: sin RED nuevo; unitarios, integración,
+  lint, tipos, `actionlint` y `docker compose config` en verde.
+
+**RDD**: `assess --base-ref 4b8655a --committed-only` → **high** (`process_boundary` en el script,
+`shell_source` en el workflow). Revisión nativa inmediata: lineage `review-470189403cc55ad9`, lentes
+`risk` + `reliability`, 3 ficheros, 33 líneas, presupuesto de corrección 17. Dos revisores ejecutados
+(`nan/qwen3.6`), veredicto **approved**, authority quemada. Sin hallazgos bloqueantes.
+
+Antes de este commit, la revisión nativa del slice del `.env` quedó cerrada: lineage
+`review-371e263512f16ff8` (PR #8, tier `medium`, lente `reliability`), **approved** con authority
+quemada. También quedó pendiente anotado un hallazgo de entorno: el contenedor local
+`consultor-lcsp-db-1` no tiene montado `docker/postgres-init` (se creó antes de que compose lo
+definiera); el script de init corre solo sobre un volumen nuevo.
+
 ## 5. Conclusión: qué se aprende de esto
 
 **Un test que destruye datos reales está mal ubicado, no mal escrito.** Truncar tablas es la forma
