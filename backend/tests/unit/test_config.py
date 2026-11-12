@@ -33,9 +33,14 @@ def test_settings_read_the_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "sk-test" not in repr(settings)
 
 
-def test_the_test_database_url_is_part_of_the_configuration() -> None:
+def test_the_test_database_url_is_part_of_the_configuration(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     # The integration conftest reads it through Settings so a value in the
     # local environment file counts, not only an exported variable.
+    # CI exports the variable for the whole job, so the default has to be
+    # asserted with it removed rather than assumed absent.
+    monkeypatch.delenv("DATABASE_URL_TEST", raising=False)
     settings = make_settings()
 
     assert settings.database_url_test == ""
