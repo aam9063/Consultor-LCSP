@@ -95,7 +95,7 @@ Otras leyes o normativa (solo LCSP consolidada); descarga automática del BOE en
 | CL-04 | Recuperación híbrida, RRF, rerank y búsqueda por número | S2, S10, S11 | `032859d`, `6a68022` | hecho |
 | CL-05 | Generación con citas, validación y abstención | S3, S12, S13 | `0e8f1ff`, `19ee890` | hecho |
 | CL-06 | Revisor de cláusulas | S4, S14 | `76bad65`, `2968a8b` | hecho |
-| CL-07 | Frontend: consulta con chips y panel, revisor, historial | S5, S15 | pendiente | diseño: `frontend/docs/mock/*.dc.html` |
+| CL-07 | Frontend: consulta con chips y panel, revisor, historial | S5, S15 | `cca1d58`, `1fc24af`, `b27bd43`, `4341dab` | hecho |
 | CL-08 | Set de 25 preguntas y evaluación | S6, S16 | pendiente | — |
 | CL-09 | README y cierre de la Fase 1 | S18 | pendiente | — |
 
@@ -278,11 +278,39 @@ Slice de 2 commits, delegado y verificado a escala real.
 
 **RDD:** `assess --base-ref b039278 --committed-only` → **`medium`** (1.049 líneas), diferido al cierre del slice.
 
+### CL-07 · Frontend: consulta, revisor e historial
+
+Slice de 4 commits, delegado y verificado con capturas por el orquestador.
+
+- `cca1d58` feat(web): vistas de consulta (chips → panel lateral vía `GET /articulos/{numero}`, tabla plegable de recuperados con rerank, estados de abstención y avisos) y de revisor (tarjetas tipadas con artículo y cita literal, `sin observaciones fundadas`, lista de descartados), historial de sesión en memoria y paleta de los mockups como tokens de Tailwind.
+- `1fc24af` test(web): 9 tests de Vitest/Testing Library + 2 de Playwright, con la red stubbeada (`fetch` y `page.route`), sin backend ni clave.
+- `b27bd43` ci: job e2e solo en PR hacia `dev`/`main`, con el stack de compose y subida del informe si falla.
+- `4341dab` chore: `.gitattributes` con `eol=lf`.
+
+**TDD observado** (RED del worker): imports no resueltos de `ConsultaView`/`RevisorView` y `Unable to find a label`. GREEN: 9 unitarios, 2 e2e.
+
+**Verificación del orquestador**
+
+- Gates: `pnpm lint`, `typecheck`, `test` (9), `build`, `e2e` (2) en verde; `actionlint` sin errores sobre el `ci.yml` nuevo.
+- **Capturas reales** de ambas vistas contra la API stubbeada: la de consulta muestra chip `art. 107` → panel con «Artículo 107» y su enlace al BOE; la de revisor muestra «2 avisos», badges `posible_incumplimiento`/`ambigüedad`, cita literal entrecomillada y panel del art. 193. Paleta y estructura fieles a `frontend/docs/mock/`.
+- **Fallo de entorno corregido:** `pnpm format:check` fallaba en 9 ficheros que nadie había tocado. Causa: `core.autocrlf=true` en el clon Windows frente a LF del repositorio. Se añadió `.gitattributes` con `* text=auto eol=lf`; `format:check` queda limpio y no vuelve a pasar en ningún clon.
+
+**RDD (revisión nativa, `high`)**
+
+- `assess --base-ref b12de34` → **`high`** (`process_boundary` y `shell_source` en `.github/workflows/ci.yml`).
+- Lineage `review-fc0433fbf0ffb962`, 3 lentes (`risk`, `readability`, `reliability`), 19 ficheros, 1.732 líneas. Tres revisores ejecutados, refutador ejecutado, veredicto **`approved`** con authority quemada.
+- Hallazgo crítico **refutado** por el refutador: `R3-001-ui-crash-undefined-filter` (RevisorView.tsx:50-51).
+- Avisos no bloqueantes (trabajo posterior, no reabren esta revisión):
+  - `R3-002-stale-panel-history-switch` (WARNING, `ConsultaView.tsx:28`): al cambiar de entrada del historial el panel puede mostrar el artículo anterior.
+  - `R3-003-ci-port-reuse-flakiness` (WARNING, `playwright.config.ts:18`): el puerto 5273 fijo puede colisionar en un runner compartido.
+  - `R3-004-regex-silent-cast` (SUGGESTION, `answerText.ts:8`).
+
 ## Progreso y siguiente paso
 
-- Progreso: 6/9 tareas implementadas y verificadas (CL-01 RDD cerrado por abandono autorizado; CL-02 a CL-06 con RDD `medium` diferido al cierre del slice).
+- Progreso: 7/9 tareas implementadas y verificadas (CL-01 RDD cerrado por abandono autorizado; CL-02 a CL-06 con RDD `medium` diferido; CL-07 con revisión nativa `approved`).
 - RDD pendiente: (a) aplicar la corrección de `R4-async-singleton-race` (cerrojo async en la inicialización del engine, con test), (b) decidir si los dos mockups entran en la candidata, (c) revisar los slices `web` e `infra`.
-- Siguiente paso: CL-07 (frontend: consulta con chips y panel, revisor, historial).
+- Siguiente paso: CL-08 (set de 25 preguntas y evaluación con la API real). Requiere decisión de Albert sobre gastar cuota.
+- Trabajo posterior anotado: los tres avisos del revisor (`R3-002`, `R3-003`, `R3-004`); el e2e del CI solo se ejercita en un PR.
 - Pendiente de decisión: endurecer `NanLLMClient` para errores de conexión/timeout antes de la carga real de 37 lotes.
 
 ## Log
