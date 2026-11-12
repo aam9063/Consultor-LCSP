@@ -93,7 +93,7 @@ Otras leyes o normativa (solo LCSP consolidada); descarga automática del BOE en
 | CL-02 | Parser de la LCSP y modelo `chunk` | S1, S8 | `1c301ec`, `ada8854` | hecho |
 | CL-03 | Ingesta idempotente con embeddings y `tsvector` | S1, S2, S9 | `9d03d4a`, `b39c8c6` | hecho |
 | CL-04 | Recuperación híbrida, RRF, rerank y búsqueda por número | S2, S10, S11 | `032859d`, `6a68022` | hecho |
-| CL-05 | Generación con citas, validación y abstención | S3, S12, S13 | pendiente | — |
+| CL-05 | Generación con citas, validación y abstención | S3, S12, S13 | `0e8f1ff`, `19ee890` | hecho |
 | CL-06 | Revisor de cláusulas | S4, S14 | pendiente | — |
 | CL-07 | Frontend: consulta con chips y panel, revisor, historial | S5, S15 | pendiente | — |
 | CL-08 | Set de 25 preguntas y evaluación | S6, S16 | pendiente | — |
@@ -221,11 +221,35 @@ Slice de 2 commits, delegado y verificado a escala real.
 
 **RDD:** `assess --base-ref cabbdff --committed-only` → **`medium`** (1.145 líneas, `executable_change` en `backend/app/adapters/llm.py`), diferido al cierre del slice.
 
+### CL-05 · Generación con citas, validación y abstención
+
+Slice de 2 commits, delegado y verificado a escala real.
+
+- `0e8f1ff` feat(answers): dominio de citas (`[art. X]` / `[art. X.Y]`, separación en afirmaciones, respaldo contra los chunks recuperados) y servicio que abstiene **antes** de generar, valida en código y reintenta una sola vez con el feedback de validación.
+- `19ee890` feat(api): `POST /consultas` con respuesta, citas validadas, afirmaciones no respaldadas, aviso, modelo y chunks.
+
+**TDD observado** (RED del worker): `ModuleNotFoundError: app.domain.citations`, `ImportError: ChatResponseError`, `AttributeError: generate_json` y `TypeError: unexpected keyword 'generation_responses'`. GREEN: 94 unitarios, 21 de integración.
+
+**Verificación del orquestador con los 580 chunks reales**
+
+- AC-07: rerank forzado a 0,05 (< umbral 0,35) → `abstencion=True`, texto exacto `No encuentro base en la LCSP para responder esto` y **0** llamadas al modelo de generación.
+- AC-06: guion con `[art. 999]` y luego `[art. 998.2]` → **2** llamadas (una sola reintentada), 0 citas válidas, 2 afirmaciones marcadas como no respaldadas y aviso presente.
+- Camino feliz con `[art. 107]` sobre una consulta que sí recupera el 107 → 1 llamada, cita válida, `warning=None`.
+- `POST /consultas`: 200 con todas las claves; 422 sin cuerpo.
+- Gates: ruff, `mypy --strict` (50 ficheros), 94 unitarios, 21 integración.
+
+**Decisiones del worker aceptadas**
+
+- Una afirmación **sin ninguna cita** también se marca como no respaldada (la spec solo habla de citas inválidas; el criterio es más estricto y no oculta texto sin respaldo).
+- `citas` en la respuesta son solo las validadas: el chip de la UI debe apuntar a un artículo que existe. Las inventadas salen por `advertencia`/`afirmaciones_no_respaldadas`.
+
+**RDD:** `assess --base-ref 48e50d6 --committed-only` → ver más abajo.
+
 ## Progreso y siguiente paso
 
-- Progreso: 4/9 tareas implementadas y verificadas (CL-01 RDD cerrado por abandono autorizado; CL-02, CL-03 y CL-04 con RDD `medium` diferido al cierre del slice).
+- Progreso: 5/9 tareas implementadas y verificadas (CL-01 RDD cerrado por abandono autorizado; CL-02 a CL-05 con RDD `medium` diferido al cierre del slice).
 - RDD pendiente: (a) aplicar la corrección de `R4-async-singleton-race` (cerrojo async en la inicialización del engine, con test), (b) decidir si los dos mockups entran en la candidata, (c) revisar los slices `web` e `infra`.
-- Siguiente paso: CL-05 (generación con citas, validación y abstención).
+- Siguiente paso: CL-06 (revisor de cláusulas).
 - Pendiente de decisión: endurecer `NanLLMClient` para errores de conexión/timeout antes de la carga real de 37 lotes.
 
 ## Log
