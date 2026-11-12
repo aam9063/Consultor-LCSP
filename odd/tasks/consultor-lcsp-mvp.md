@@ -304,6 +304,7 @@ Slice de 4 commits, delegado y verificado con capturas por el orquestador.
   - `R3-002-stale-panel-history-switch` (WARNING, `ConsultaView.tsx:28`): al cambiar de entrada del historial el panel puede mostrar el artículo anterior.
   - `R3-003-ci-port-reuse-flakiness` (WARNING, `playwright.config.ts:18`): el puerto 5273 fijo puede colisionar en un runner compartido.
   - `R3-004-regex-silent-cast` (SUGGESTION, `answerText.ts:8`).
+- **Avisos atendidos** en `a26d52c` (decisión de Albert): `R3-002` corregido con test propio (la selección del panel pertenece a la consulta mostrada y vuelve al placeholder al cambiar de respuesta) y `R3-003` corregido (puerto del e2e por `PLAYWRIGHT_PORT` y `reuseExistingServer: false`, verificado con el puerto por defecto y con 5301). `R3-004` queda como sugerencia menor.
 
 ## Progreso y siguiente paso
 
