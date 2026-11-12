@@ -91,7 +91,7 @@ Otras leyes o normativa (solo LCSP consolidada); descarga automática del BOE en
 | --- | --- | --- | --- | --- |
 | CL-01 | Esqueleto del monorepo, Docker Compose con pgvector, `/health`, CI mínimo | S1(parcial), S7, S17 | pendiente | — |
 | CL-02 | Parser de la LCSP y modelo `chunk` | S1, S8 | `1c301ec`, `ada8854` | hecho |
-| CL-03 | Ingesta idempotente con embeddings y `tsvector` | S1, S2, S9 | pendiente | — |
+| CL-03 | Ingesta idempotente con embeddings y `tsvector` | S1, S2, S9 | `9d03d4a`, `b39c8c6` | hecho |
 | CL-04 | Recuperación híbrida, RRF, rerank y búsqueda por número | S2, S10, S11 | pendiente | — |
 | CL-05 | Generación con citas, validación y abstención | S3, S12, S13 | pendiente | — |
 | CL-06 | Revisor de cláusulas | S4, S14 | pendiente | — |
@@ -176,11 +176,34 @@ Slice de 2 commits (~1.300 líneas), delegado a `gentle-ai-worker` y verificado 
 - **Anclas:** los `id` del BOE no son correlativos (`art. 107` = `a1-19`); el parser usa el `id` del bloque, nunca un número construido.
 - **Disposiciones:** identidad sintética `DA1…DA58`, `DT1-6`, `DD1`, `DF1-16` por orden documental, con el ordinal completo en `titulo`. Aceptado: AC-04 solo exige recuperación por número de artículo.
 
+### CL-03 · Ingesta idempotente con embeddings
+
+Slice de 2 commits, delegado a `gentle-ai-worker` y verificado a escala real por el orquestador.
+
+- `9d03d4a` feat(adapters): puerto `LLMClient` (`Protocol`) + `NanLLMClient` (lotes de `EMBEDDING_BATCH_SIZE`, semáforo 5, timeout 60 s, backoff exponencial con jitter ante 429/5xx, validación de 4.096 dimensiones, sin loguear la clave) + `FakeLLMClient` determinista en tests.
+- `b39c8c6` feat(ingest): `ingest_chunks` idempotente por `(articulo, apartado)` contra la clave única, embebiendo solo lo nuevo o cambiado; CLI `python -m app.ingest <xml>` con `--dry-run` (cero escrituras, cero llamadas, no construye el cliente real) y error tipado si falta `NAN_API_KEY`.
+
+**TDD observado** (RED del worker): `ModuleNotFoundError` de `app.adapters.llm`, `app.ingest` y `app.services.ingest`. GREEN: 27 unitarios, 7 de integración, 1 de datos.
+
+**Verificación del orquestador a escala real** (no el fixture del worker, el XML de 580 chunks)
+
+- `--dry-run` desde la raíz con la forma literal del BRIEF: `uv run --project backend python -m app.ingest data/lcsp/lcsp-consolidada.xml --dry-run` → `{"chunks": 580, "embedding_batches": 37}`, exit 0.
+- Doble ingesta real contra Postgres con `FakeLLMClient`: run 1 `inserted=580, embedded=580`; run 2 `inserted=0, updated=0, skipped=580, embedded=0`; filas 580 → 580. **AC-03 cumplido** con el corpus completo.
+- Gates: `ruff`, `ruff format --check`, `mypy --strict` (35 ficheros), `pytest` 27, `pytest tests/integration` 7, `pytest tests/data` 1.
+
+**RDD:** `assess --base-ref 0424e60 --committed-only` → **`medium`** (815 líneas, `executable_change` en `backend/app/adapters/llm.py`), diferido al cierre del slice según AGENTS §5.
+
+**Limitaciones conocidas (no corregidas acá)**
+
+- `NanLLMClient` reintenta 429/5xx pero no `APIConnectionError` ni timeouts de red: en la carga real de 37 lotes conviene decidirlo antes de CL-04.
+- El semáforo es por llamada a `embed()`, no global entre ingestas concurrentes.
+
 ## Progreso y siguiente paso
 
-- Progreso: 2/9 tareas implementadas y verificadas (CL-01 con RDD cerrado por abandono autorizado, CL-02 con la corrección del `tsv` incluida).
+- Progreso: 3/9 tareas implementadas y verificadas (CL-01 RDD cerrado por abandono autorizado; CL-02 y CL-03 con RDD `medium` diferido al cierre del slice).
 - RDD pendiente: (a) aplicar la corrección de `R4-async-singleton-race` (cerrojo async en la inicialización del engine, con test), (b) decidir si los dos mockups entran en la candidata, (c) revisar los slices `web` e `infra`.
-- Siguiente paso: arrancar CL-02 (parser de la LCSP) en cuanto se cierre la revisión de CL-01.
+- Siguiente paso: CL-04 (recuperación híbrida, RRF, rerank, búsqueda por número). Pendiente de decisión de Albert: cuándo se ejecuta la carga real de embeddings con `NAN_API_KEY`.
+- Pendiente de decisión: endurecer `NanLLMClient` para errores de conexión/timeout antes de la carga real de 37 lotes.
 
 ## Log
 
