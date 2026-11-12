@@ -177,6 +177,7 @@ cp .env.example .env && docker compose up -d
 cd backend && uv sync && uv run alembic upgrade head
 uv run pytest
 uv run ruff check . && uv run ruff format --check . && uv run mypy --strict app
+uv run ruff check ../evals && uv run mypy --strict ../evals   # el runner de evaluación también se lintea
 
 # Frontend
 cd frontend && pnpm install
@@ -197,7 +198,30 @@ cd backend && uv run python -m evals.run
 - No añadas dependencias nuevas sin justificarlo en una línea en el feature document.
 - Accesibilidad básica en el frontend: etiquetas en formularios, foco visible y contraste suficiente.
 
-## 11. Definición de hecho (por tarea)
+## 11. Documentación de aprendizaje (obligatoria)
+
+Al cerrar **cada** implementación (tarea del feature document, corrección relevante o slice), escribe
+`docs/aprendizaje/<ID>-<slug>.md`. No es un changelog ni un resumen del diff: es material de estudio
+para Albert, que está aprendiendo a construir este tipo de producto.
+
+Estructura fija, en español, con estas cinco secciones:
+
+1. **Qué se ha construido** — la pieza en una frase y su lugar en el sistema, sin jerga sin explicar.
+2. **Cómo se ha hecho y por qué así** — cada decisión con su argumento y, cuando exista, la
+   alternativa descartada y por qué se descartó. Prohibido "porque es lo habitual": o hay razón o no
+   se escribe.
+3. **Errores detectados** — los reales, con el síntoma, la causa y la evidencia que los delató.
+   Incluye los propios del agente, no solo los del código.
+4. **Cómo se iteró hasta una solución válida** — la secuencia RED → diagnóstico → decisión → GREEN,
+   con los números que la justifican.
+5. **Conclusión: qué se aprende de esto** — el principio transferible a otro proyecto, en dos o tres
+   párrafos. Es la sección que Albert se va a releer.
+
+Reglas: nada de métricas inventadas ni redondeadas a favor; si algo no se midió, se dice. Si una
+decisión la tomó Albert, se registra como suya y con su motivo. Los documentos se versionan junto al
+código que explican.
+
+## 12. Definición de hecho (por tarea)
 
 - [ ] Tests escritos primero, con RED y GREEN anotados.
 - [ ] Lint, tipos y tests en verde en local.
@@ -206,7 +230,7 @@ cd backend && uv run python -m evals.run
 - [ ] Criterios de aceptación del `BRIEF.md` cubiertos por la tarea marcados con su evidencia.
 - [ ] Feature document actualizado: progreso y siguiente paso.
 
-## 12. Nunca
+## 13. Nunca
 
 - Hacer push o abrir PRs sin el sí explícito de Albert (el push) o en absoluto (las PRs).
 - Commitear en `main` o `dev`, hacer force push o reescribir historia compartida.
