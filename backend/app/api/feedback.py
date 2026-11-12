@@ -42,7 +42,10 @@ class FeedbackRequest(BaseModel):
     respuesta: str | None = None
     citas: list[dict[str, Any]] = Field(default_factory=list)
     modelo: str | None = None
-    voto: int | float | str | None = None
+    # Deliberately untyped: Pydantic coerces `True` to `1` for an int field
+    # (bool is an int subclass) and a JSON `true` would become a real vote.
+    # `normalize_voto` is the single place that decides what a vote is.
+    voto: Any = None
     comentario: str | None = None
 
 
