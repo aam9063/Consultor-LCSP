@@ -330,7 +330,7 @@ Tres corridas sobre el corpus real (580 chunks, `qwen3-embedding` + `rerank` + `
 
 1. Citas 90% → el sistema entregaba respuestas sin ninguna cita respaldada (corregido: ahora abstiene).
 2. Recall 75% frente a 97,5% de embeddings → **artefacto de medición**: el recall se calculaba sobre los chunks de la respuesta, vacíos al abstener (corregido: recuperación medida aparte).
-3. `rerank_threshold = 0,35` inventado → abstenía en 5 de 20 preguntas válidas y dejaba pasar 4 de 5 fuera de la ley. Calibrado a 0,85 con la distribución real (con base legal: mín 0,958; fuera de la ley: máx 0,757).
+3. `rerank_threshold = 0,35` inventado → abstenía en 5 de 20 preguntas válidas y dejaba pasar 4 de 5 fuera de la ley. Calibrado a 0,85 con la distribución real. Dos corridas dan cifras ligeramente distintas (con base legal: mín 0,9579 / 0,9577; fuera de la ley: máx 0,7528 / 0,7573), o sea que **el rerank no es determinista al milésimo**. Lo que hace seguro el 0,85 no es un número exacto sino el hueco de ~0,20 entre los dos grupos.
 4. `evals/run.py` roto por un string mal escapado que los gates no veían: `ruff`/`mypy` no cubrían `evals/` (corregido en CI y AGENTS.md).
 
 ## Progreso y siguiente paso

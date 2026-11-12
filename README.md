@@ -91,7 +91,9 @@ two measurement defects found and fixed — is in `odd/tasks/consultor-lcsp-mvp.
 ## Configuration that matters
 
 - `RERANK_THRESHOLD` (default **0.85**): the abstention cut-off, **calibrated** against real
-  scores. Answerable questions never scored below 0.958; out-of-law questions never above 0.757.
+  scores. Answerable questions scored at least ~0.96 in every run; out-of-law questions never went
+  past ~0.76, so there is a gap of about 0.20 and the cut-off sits inside it. The reranker moves a
+  few thousandths between runs, so what makes 0.85 safe is that gap, not a single exact number.
   The original 0.35 was a guess and abstained on 5 of 20 valid questions while letting 4 of 5
   out-of-law ones through.
 - `RETRIEVAL_TOP_K` (default 6), `EMBEDDING_BATCH_SIZE` (default 16),
