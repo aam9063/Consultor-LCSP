@@ -1,0 +1,683 @@
+{
+  "fecha": "2026-11-12",
+  "corpus": "LCSP consolidada (BOE-A-2017-12902, versión 2018-03-09)",
+  "top_k": 6,
+  "comparison": {
+    "hybrid": {
+      "questions": 20,
+      "recall_at_5": 0.975,
+      "hit_at_1": 0.95,
+      "mrr": 0.9667,
+      "worst_cases": [
+        {
+          "id": "P-06",
+          "pregunta": "Estamos redactando los criterios con los que puntuaremos las ofertas: ¿qué clases de criterios admite la ley y qué se puede llegar a valorar?",
+          "recall_at_5": 1.0,
+          "hit_at_1": 0.0,
+          "mrr": 0.3333,
+          "recuperados": [
+            "146",
+            "143",
+            "145",
+            "145",
+            "145",
+            "145"
+          ]
+        },
+        {
+          "id": "P-08",
+          "pregunta": "El adjudicatario nos pregunta si puede encargar parte de la prestación a otras empresas: ¿qué condiciones pone la ley para eso y en qué plazo tiene después que pagarles?",
+          "recall_at_5": 0.5,
+          "hit_at_1": 1.0,
+          "mrr": 1.0,
+          "recuperados": [
+            "215",
+            "215",
+            "296",
+            "214",
+            "32",
+            "DA51"
+          ]
+        }
+      ]
+    },
+    "embeddings": {
+      "questions": 20,
+      "recall_at_5": 0.975,
+      "hit_at_1": 0.8,
+      "mrr": 0.8917,
+      "worst_cases": [
+        {
+          "id": "P-14",
+          "pregunta": "Estamos definiendo la documentación que deben aportar los licitadores para acreditar su capacidad económica: ¿qué medios acepta la ley para ello?",
+          "recall_at_5": 1.0,
+          "hit_at_1": 0.0,
+          "mrr": 0.3333,
+          "recuperados": [
+            "140",
+            "86",
+            "87",
+            "87",
+            "96",
+            "87"
+          ]
+        },
+        {
+          "id": "P-08",
+          "pregunta": "El adjudicatario nos pregunta si puede encargar parte de la prestación a otras empresas: ¿qué condiciones pone la ley para eso y en qué plazo tiene después que pagarles?",
+          "recall_at_5": 0.5,
+          "hit_at_1": 0.0,
+          "mrr": 0.5,
+          "recuperados": [
+            "296",
+            "215",
+            "32",
+            "DA51",
+            "32",
+            "215"
+          ]
+        },
+        {
+          "id": "P-06",
+          "pregunta": "Estamos redactando los criterios con los que puntuaremos las ofertas: ¿qué clases de criterios admite la ley y qué se puede llegar a valorar?",
+          "recall_at_5": 1.0,
+          "hit_at_1": 0.0,
+          "mrr": 0.5,
+          "recuperados": [
+            "146",
+            "145",
+            "157",
+            "145",
+            "145",
+            "176"
+          ]
+        },
+        {
+          "id": "P-18",
+          "pregunta": "Un proveedor nos reclama porque llevamos 45 días sin pagarle una certificación ya aprobada: ¿en qué plazo debe pagar la Administración y qué genera pasarse de ese plazo?",
+          "recall_at_5": 1.0,
+          "hit_at_1": 0.0,
+          "mrr": 0.5,
+          "recuperados": [
+            "199",
+            "198",
+            "29",
+            "193",
+            "292",
+            "216"
+          ]
+        }
+      ]
+    }
+  },
+  "questions": [
+    {
+      "id": "P-01",
+      "pregunta": "El contratista lleva tres semanas de retraso injustificado en la ejecución: ¿qué multas puede aplicarnos el órgano de contratación y cómo se hacen efectivas después?",
+      "articulos_esperados": [
+        "193",
+        "194"
+      ],
+      "hibrido": [
+        "193",
+        "194",
+        "264",
+        "29",
+        "211",
+        "192"
+      ],
+      "embeddings": [
+        "193",
+        "194",
+        "29",
+        "195",
+        "192",
+        "104"
+      ]
+    },
+    {
+      "id": "P-02",
+      "pregunta": "Estamos preparando la licitación de una obra de 600.000 euros: ¿es obligatorio que las empresas licitadoras estén clasificadas y qué aporta esa clasificación frente a acreditar la solvencia por otros medios?",
+      "articulos_esperados": [
+        "77"
+      ],
+      "hibrido": [
+        "77",
+        "92",
+        "86",
+        "79",
+        "74",
+        "87"
+      ],
+      "embeddings": [
+        "77",
+        "79",
+        "92",
+        "78",
+        "69",
+        "74"
+      ]
+    },
+    {
+      "id": "P-03",
+      "pregunta": "Nos han adjudicado un contrato y nos piden aportar la garantía definitiva: ¿de qué porcentaje parte y sobre qué precio se calcula?",
+      "articulos_esperados": [
+        "107"
+      ],
+      "hibrido": [
+        "107",
+        "106",
+        "109",
+        "114",
+        "110",
+        "108"
+      ],
+      "embeddings": [
+        "107",
+        "108",
+        "106",
+        "109",
+        "110",
+        "114"
+      ]
+    },
+    {
+      "id": "P-04",
+      "pregunta": "Solo necesito comprar material de oficina por unos 12.000 euros sin montar todo el expediente de licitación: ¿qué dice la ley sobre las compras de esta cuantía y qué documentación exige?",
+      "articulos_esperados": [
+        "118"
+      ],
+      "hibrido": [
+        "118",
+        "318",
+        "159",
+        "321",
+        "116",
+        "159"
+      ],
+      "embeddings": [
+        "118",
+        "159",
+        "159",
+        "318",
+        "21",
+        "DT2"
+      ]
+    },
+    {
+      "id": "P-05",
+      "pregunta": "Para agilizar una licitación de servicios de 90.000 euros cuyos criterios son todos automáticos, ¿qué procedimiento ligero nos permite la ley y qué condiciones tiene?",
+      "articulos_esperados": [
+        "159"
+      ],
+      "hibrido": [
+        "159",
+        "159",
+        "143",
+        "318",
+        "143",
+        "131"
+      ],
+      "embeddings": [
+        "159",
+        "159",
+        "159",
+        "318",
+        "137",
+        "131"
+      ]
+    },
+    {
+      "id": "P-06",
+      "pregunta": "Estamos redactando los criterios con los que puntuaremos las ofertas: ¿qué clases de criterios admite la ley y qué se puede llegar a valorar?",
+      "articulos_esperados": [
+        "145"
+      ],
+      "hibrido": [
+        "146",
+        "143",
+        "145",
+        "145",
+        "145",
+        "145"
+      ],
+      "embeddings": [
+        "146",
+        "145",
+        "157",
+        "145",
+        "145",
+        "176"
+      ]
+    },
+    {
+      "id": "P-07",
+      "pregunta": "En una licitación llega una oferta sospechosamente barata, muy por debajo de las demás: ¿qué debe hacer el órgano de contratación antes de poder excluir a ese licitador?",
+      "articulos_esperados": [
+        "149"
+      ],
+      "hibrido": [
+        "149",
+        "149",
+        "149",
+        "150",
+        "149",
+        "149"
+      ],
+      "embeddings": [
+        "149",
+        "149",
+        "149",
+        "149",
+        "149",
+        "149"
+      ]
+    },
+    {
+      "id": "P-08",
+      "pregunta": "El adjudicatario nos pregunta si puede encargar parte de la prestación a otras empresas: ¿qué condiciones pone la ley para eso y en qué plazo tiene después que pagarles?",
+      "articulos_esperados": [
+        "215",
+        "216"
+      ],
+      "hibrido": [
+        "215",
+        "215",
+        "296",
+        "214",
+        "32",
+        "DA51"
+      ],
+      "embeddings": [
+        "296",
+        "215",
+        "32",
+        "DA51",
+        "32",
+        "215"
+      ]
+    },
+    {
+      "id": "P-09",
+      "pregunta": "Vamos a comprar equipos informáticos por un valor estimado de 150.000 euros desde la Administración General del Estado: ¿estamos sujetos a regulación armonizada?",
+      "articulos_esperados": [
+        "21"
+      ],
+      "hibrido": [
+        "21",
+        "19",
+        "22",
+        "230",
+        "19",
+        "317"
+      ],
+      "embeddings": [
+        "21",
+        "230",
+        "DA20",
+        "22",
+        "19",
+        "317"
+      ]
+    },
+    {
+      "id": "P-10",
+      "pregunta": "Un hospital del sector público autonómico va a contratar un servicio de mantenimiento por 250.000 euros: ¿supera el umbral de contratación armonizada y hay casos con cifras distintas?",
+      "articulos_esperados": [
+        "22"
+      ],
+      "hibrido": [
+        "22",
+        "21",
+        "20",
+        "19",
+        "23",
+        "318"
+      ],
+      "embeddings": [
+        "22",
+        "21",
+        "20",
+        "DA3",
+        "23",
+        "19"
+      ]
+    },
+    {
+      "id": "P-11",
+      "pregunta": "¿Podemos pedir a los licitadores un depósito al inicio del procedimiento para responder del mantenimiento de sus ofertas y, en tal caso, hasta qué porcentaje podemos exigir?",
+      "articulos_esperados": [
+        "106"
+      ],
+      "hibrido": [
+        "106",
+        "114",
+        "107",
+        "159",
+        "160",
+        "174"
+      ],
+      "embeddings": [
+        "106",
+        "114",
+        "139",
+        "159",
+        "140",
+        "107"
+      ]
+    },
+    {
+      "id": "P-12",
+      "pregunta": "El pliego va a fijar cuánto dura el contrato y si habrá prórrogas: ¿qué exige la ley sobre cómo fijar esos plazos y sobre el preaviso cuando llega el vencimiento?",
+      "articulos_esperados": [
+        "29"
+      ],
+      "hibrido": [
+        "29",
+        "29",
+        "278",
+        "29",
+        "29",
+        "29"
+      ],
+      "embeddings": [
+        "29",
+        "29",
+        "29",
+        "29",
+        "35",
+        "29"
+      ]
+    },
+    {
+      "id": "P-13",
+      "pregunta": "Un licitador tiene una condena firme por cohecho: ¿puede contratar con la Administración y en qué otras circunstancias está prohibido contratar?",
+      "articulos_esperados": [
+        "71"
+      ],
+      "hibrido": [
+        "71",
+        "73",
+        "65",
+        "72",
+        "72",
+        "72"
+      ],
+      "embeddings": [
+        "71",
+        "72",
+        "72",
+        "72",
+        "72",
+        "73"
+      ]
+    },
+    {
+      "id": "P-14",
+      "pregunta": "Estamos definiendo la documentación que deben aportar los licitadores para acreditar su capacidad económica: ¿qué medios acepta la ley para ello?",
+      "articulos_esperados": [
+        "87"
+      ],
+      "hibrido": [
+        "87",
+        "86",
+        "87",
+        "92",
+        "74",
+        "65"
+      ],
+      "embeddings": [
+        "140",
+        "86",
+        "87",
+        "87",
+        "96",
+        "87"
+      ]
+    },
+    {
+      "id": "P-15",
+      "pregunta": "Al preparar el expediente me piden justificar el importe que servirá de referencia para decidir el procedimiento: ¿qué debe incluir exactamente ese cálculo, por ejemplo las prórrogas o las modificaciones previsibles?",
+      "articulos_esperados": [
+        "101"
+      ],
+      "hibrido": [
+        "101",
+        "116",
+        "101",
+        "101",
+        "101",
+        "101"
+      ],
+      "embeddings": [
+        "101",
+        "105",
+        "101",
+        "101",
+        "116",
+        "100"
+      ]
+    },
+    {
+      "id": "P-16",
+      "pregunta": "La empresa adjudicataria quiere saber cómo se firma el contrato: ¿ante qué documento se hace, quién soporta el coste si se eleva a escritura pública y se puede tocar el contenido de la adjudicación?",
+      "articulos_esperados": [
+        "153"
+      ],
+      "hibrido": [
+        "153",
+        "37",
+        "165",
+        "35",
+        "36",
+        "116"
+      ],
+      "embeddings": [
+        "153",
+        "165",
+        "35",
+        "63",
+        "117",
+        "116"
+      ]
+    },
+    {
+      "id": "P-17",
+      "pregunta": "Con la urgencia de una obra, ¿en qué casos puede el órgano de contratación adjudicar directamente sin publicar anuncio en el perfil de contratante?",
+      "articulos_esperados": [
+        "168"
+      ],
+      "hibrido": [
+        "168",
+        "131",
+        "170",
+        "321",
+        "135",
+        "186"
+      ],
+      "embeddings": [
+        "168",
+        "131",
+        "170",
+        "318",
+        "120",
+        "186"
+      ]
+    },
+    {
+      "id": "P-18",
+      "pregunta": "Un proveedor nos reclama porque llevamos 45 días sin pagarle una certificación ya aprobada: ¿en qué plazo debe pagar la Administración y qué genera pasarse de ese plazo?",
+      "articulos_esperados": [
+        "198"
+      ],
+      "hibrido": [
+        "198",
+        "216",
+        "199",
+        "210",
+        "292",
+        "306"
+      ],
+      "embeddings": [
+        "199",
+        "198",
+        "29",
+        "193",
+        "292",
+        "216"
+      ]
+    },
+    {
+      "id": "P-19",
+      "pregunta": "El contratista lleva un retraso enorme y dudamos si continuar con él: ¿por qué causas puede resolverse el contrato antes de terminar la prestación?",
+      "articulos_esperados": [
+        "211"
+      ],
+      "hibrido": [
+        "211",
+        "313",
+        "279",
+        "245",
+        "193",
+        "212"
+      ],
+      "embeddings": [
+        "211",
+        "245",
+        "195",
+        "212",
+        "313",
+        "246"
+      ]
+    },
+    {
+      "id": "P-20",
+      "pregunta": "La obra está terminada y vamos a hacer la recepción: ¿cómo se desarrolla el acta, cuándo empieza el periodo de garantía y quién responde si años después aparecen vicios ocultos?",
+      "articulos_esperados": [
+        "243",
+        "244"
+      ],
+      "hibrido": [
+        "243",
+        "244",
+        "256",
+        "210",
+        "300",
+        "305"
+      ],
+      "embeddings": [
+        "243",
+        "210",
+        "256",
+        "244",
+        "305",
+        "300"
+      ]
+    },
+    {
+      "id": "P-21",
+      "pregunta": "¿Qué tipo de IVA se aplica a una obra de reforma en una vivienda?",
+      "articulos_esperados": [],
+      "hibrido": [
+        "232",
+        "DA13",
+        "242",
+        "13",
+        "DF10",
+        "241"
+      ],
+      "embeddings": [
+        "232",
+        "DA13",
+        "DF10",
+        "242",
+        "13",
+        "262"
+      ]
+    },
+    {
+      "id": "P-22",
+      "pregunta": "¿Cuántos días de vacaciones le corresponden por ley a un trabajador al año?",
+      "articulos_esperados": [],
+      "hibrido": [
+        "DA12",
+        "29",
+        "29",
+        "29",
+        "297",
+        "137"
+      ],
+      "embeddings": [
+        "DA12",
+        "DF16",
+        "DF8",
+        "29",
+        "29",
+        "DF1"
+      ]
+    },
+    {
+      "id": "P-23",
+      "pregunta": "¿A partir de qué edad puede jubilarse un trabajador y con qué porcentaje de su base reguladora?",
+      "articulos_esperados": [],
+      "hibrido": [
+        "100",
+        "DF8",
+        "103",
+        "DF16",
+        "129",
+        "130"
+      ],
+      "embeddings": [
+        "DF16",
+        "198",
+        "DF8",
+        "DA4",
+        "130",
+        "277"
+      ]
+    },
+    {
+      "id": "P-24",
+      "pregunta": "¿Qué obligaciones tiene una empresa para cumplir el RGPD en el tratamiento de datos personales?",
+      "articulos_esperados": [],
+      "hibrido": [
+        "DA25",
+        "342",
+        "343",
+        "339",
+        "67",
+        "288"
+      ],
+      "embeddings": [
+        "DA25",
+        "343",
+        "339",
+        "288",
+        "258",
+        "67"
+      ]
+    },
+    {
+      "id": "P-25",
+      "pregunta": "¿En qué plazo debe el arrendador devolver la fianza al terminar el contrato de alquiler?",
+      "articulos_esperados": [],
+      "hibrido": [
+        "111",
+        "298",
+        "109",
+        "29",
+        "158",
+        "307"
+      ],
+      "embeddings": [
+        "111",
+        "29",
+        "298",
+        "291",
+        "307",
+        "158"
+      ]
+    }
+  ]
+}

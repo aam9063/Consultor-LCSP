@@ -10,6 +10,11 @@ comparison (BRIEF section 12). It also writes
 `evals/results/<fecha>.json` with one auditable record per question
 (expected and retrieved articles, citations, abstention, service
 warning), so a later run can be audited without spending quota again.
+`--retrieval-compare` runs retrieval only, with no generation call at
+all, compares the hybrid ranking against the embeddings-only baseline on
+position metrics (recall@5, hit@1, MRR) and writes
+`evals/results/<fecha>-retrieval.json` with the per-question rankings of
+both modes, so any later analysis needs no quota.
 
 Run from the repository root (the `app` package is the backend project):
 
@@ -37,9 +42,12 @@ from app.db.session import dispose_engine, get_session_factory
 from app.services.answers import AnswerResult, answer_question
 from app.services.evaluation import (
     QuestionResult,
+    RetrievalComparisonRow,
     build_report,
+    compare_retrieval_modes,
     question_record,
     render_markdown,
+    retrieval_compare_payload,
     score_ranges,
 )
 from app.services.retrieval import hybrid_search
@@ -155,6 +163,40 @@ async def calibrate_scores(
     return results, score_ranges(results)
 
 
+async def run_retrieval_compare(
+    questions: Sequence[dict[str, Any]], *, top_k: int
+) -> list[RetrievalComparisonRow]:
+    """Retrieve every question with both modes; no generation call at all.
+
+    The hybrid mode goes through `hybrid_search` (RRF + rerank + direct
+    article); the baseline goes through `embeddings_only_articles`, the same
+    isolated vector branch as the full evaluation, so any future change in
+    `hybrid_search` can never mask what embeddings alone achieve. The
+    per-question rankings are returned for `compare_retrieval_modes` and the
+    `<fecha>-retrieval.json` audit file.
+    """
+    llm = NanLLMClient()
+    rows: list[RetrievalComparisonRow] = []
+    async with get_session_factory()() as session:
+        for entry in questions:
+            question = str(entry["pregunta"])
+            retrieval = await hybrid_search(session, llm, question, top_k=top_k)
+            embeddings_articles = await embeddings_only_articles(
+                session, llm, question, top_k=top_k
+            )
+            rows.append(
+                RetrievalComparisonRow(
+                    id=str(entry["id"]),
+                    pregunta=question,
+                    expected_articles=tuple(str(a) for a in entry["articulos_esperados"]),
+                    hybrid_articles=tuple(chunk.articulo for chunk in retrieval.chunks),
+                    embeddings_articles=embeddings_articles,
+                )
+            )
+    await dispose_engine()
+    return rows
+
+
 def write_report(results: Sequence[QuestionResult], *, output_dir: Path, today: str) -> Path:
     """Write `evals/results/<fecha>.md` and its per-question `<fecha>.json`.
 
@@ -182,13 +224,53 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--preguntas", type=Path, default=DEFAULT_QUESTIONS)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--top-k", type=int, default=6)
-    parser.add_argument(
+    mode_group = parser.add_mutually_exclusive_group()
+    mode_group.add_argument(
         "--calibrate",
         action="store_true",
         help="retrieve only and report the rerank score spread (no generation)",
     )
+    mode_group.add_argument(
+        "--retrieval-compare",
+        action="store_true",
+        help="retrieve only with both modes and compare recall@5, hit@1 and MRR "
+        "(no generation); writes <fecha>-retrieval.json",
+    )
     args = parser.parse_args(argv)
     questions = load_questions(args.preguntas)
+    if args.retrieval_compare:
+        rows = asyncio.run(run_retrieval_compare(questions, top_k=args.top_k))
+        today = datetime.now().strftime("%Y-%m-%d")
+        comparison = compare_retrieval_modes(rows)
+        args.output_dir.mkdir(parents=True, exist_ok=True)
+        destination = args.output_dir / f"{today}-retrieval.json"
+        destination.write_text(
+            json.dumps(
+                retrieval_compare_payload(
+                    rows, comparison, fecha=today, corpus=CORPUS, top_k=args.top_k
+                ),
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        print(f"{'mode':<16} {'n':>3} {'recall@5':>9} {'hit@1':>7} {'mrr':>7}")
+        for mode, label in (("hybrid", "hybrid"), ("embeddings", "embeddings-only")):
+            metrics = comparison[mode]
+            print(
+                f"{label:<16} {metrics.questions:>3} "
+                f"{metrics.recall_at_5 * 100:>8.1f}% {metrics.hit_at_1 * 100:>6.1f}% "
+                f"{metrics.mrr:>7.3f}"
+            )
+        for mode, label in (("hybrid", "hybrid"), ("embeddings", "embeddings-only")):
+            for case in comparison[mode].worst_cases:
+                print(
+                    f"worst ({label}) {case['id']}: mrr {case['mrr']:.3f}, "
+                    f"hit@1 {case['hit_at_1']:.2f} — {case['pregunta']}"
+                )
+        print(f"retrieval comparison written to {destination}")
+        return
     if args.calibrate:
         calibrated, ranges = asyncio.run(calibrate_scores(questions, top_k=args.top_k))
         today = datetime.now().strftime("%Y-%m-%d")
