@@ -116,13 +116,27 @@ Subagentes: solo con motivo explícito (exploración amplia, escritores en paral
 - Un commit = una unidad de trabajo coherente con sus tests. Nada de commits "wip" ni de mezclar refactor y feature.
 - Antes de cada commit: lint, tipos y tests del área tocada en verde.
 
-**Push (siempre preguntando)**
-- **Nunca hagas `git push` sin preguntar.** Pregunta exactamente: "¿Hago push de `<rama>` a `origin`?" y espera un sí explícito para esa rama.
+**Autorización permanente de Albert (2026-11-12)**
+
+Albert delegó explícitamente el ciclo completo de entrega. Mientras esta autorización siga vigente:
+
+1. **Push** de la rama de trabajo (`feat/*`, `fix/*`) a `origin` sin volver a preguntar.
+2. **Abrir la PR contra `dev`** (nunca contra `main`) con el borrador del feature document.
+3. **Vigilar el CI** de esa PR hasta verlo en verde; si falla, se diagnostica la causa raíz, se corrige y se vuelve a intentar. Nada se considera terminado con CI rojo.
+4. **Mergear a `dev`** cuando la PR esté en verde, con merge commit (no squash: los hashes de los commits son evidencia citada en el feature document).
+5. **Nunca mergear a `main`**, ni `dev` ni ninguna otra rama: eso sigue siendo decisión exclusiva de Albert.
+6. Al terminar el merge, **continuar con la siguiente tarea** del feature document, documentando en `docs/aprendizaje/<ID>-<slug>.md` según la sección 11.
+
+Esta autorización **no** incluye: force push, reescribir historia compartida, tocar `main`, saltarse TDD/RDD, ni desactivar gates.
+
+**Push (resto de casos)**
+- Cualquier otro push (rama ajena al ciclo, `dev`, `main`) sigue exigiendo pregunta explícita.
+- **Después de cada push, espera el run del CI.** No des una tarea por cerrada hasta ver ese run en verde: `gh run watch <run-id> --exit-status` (o `gh run list` para localizarlo). Si falla, lee `gh run view <run-id> --log-failed`, diagnostica la causa raíz, corrígela y vuelve a pushear y esperar. Un push sin run verde no es un push terminado.
 - Nunca `--force` ni `--force-with-lease`.
 - No actives los modos `YOLO`, `Super Yolo` ni `auto` de gentle-shell para saltarte esta regla: conceden push y PR por su cuenta.
 
-**Pull requests (las abre Albert)**
-- **Nunca abras PRs** (ni `gh pr create` ni la API de GitHub).
+**Pull requests**
+- Autorizadas contra `dev` según la autorización permanente de arriba. **Nunca** contra `main`.
 - Al cerrar una feature, deja en el feature document un borrador de PR en inglés: título, resumen, criterios de aceptación cubiertos, cómo probarlo y resultado de RDD.
 - Nunca hagas merge, rebase ni cherry-pick sobre `main` o `dev`.
 
@@ -176,6 +190,7 @@ cp .env.example .env && docker compose up -d
 cd backend && uv sync && uv run alembic upgrade head
 uv run pytest
 uv run ruff check . && uv run ruff format --check . && uv run mypy --strict app
+uv run ruff check ../evals && uv run mypy --strict ../evals   # el runner de evaluación también se lintea
 
 # Frontend
 cd frontend && pnpm install
@@ -196,7 +211,30 @@ cd backend && uv run python -m evals.run
 - No añadas dependencias nuevas sin justificarlo en una línea en el feature document.
 - Accesibilidad básica en el frontend: etiquetas en formularios, foco visible y contraste suficiente.
 
-## 11. Definición de hecho (por tarea)
+## 11. Documentación de aprendizaje (obligatoria)
+
+Al cerrar **cada** implementación (tarea del feature document, corrección relevante o slice), escribe
+`docs/aprendizaje/<ID>-<slug>.md`. No es un changelog ni un resumen del diff: es material de estudio
+para Albert, que está aprendiendo a construir este tipo de producto.
+
+Estructura fija, en español, con estas cinco secciones:
+
+1. **Qué se ha construido** — la pieza en una frase y su lugar en el sistema, sin jerga sin explicar.
+2. **Cómo se ha hecho y por qué así** — cada decisión con su argumento y, cuando exista, la
+   alternativa descartada y por qué se descartó. Prohibido "porque es lo habitual": o hay razón o no
+   se escribe.
+3. **Errores detectados** — los reales, con el síntoma, la causa y la evidencia que los delató.
+   Incluye los propios del agente, no solo los del código.
+4. **Cómo se iteró hasta una solución válida** — la secuencia RED → diagnóstico → decisión → GREEN,
+   con los números que la justifican.
+5. **Conclusión: qué se aprende de esto** — el principio transferible a otro proyecto, en dos o tres
+   párrafos. Es la sección que Albert se va a releer.
+
+Reglas: nada de métricas inventadas ni redondeadas a favor; si algo no se midió, se dice. Si una
+decisión la tomó Albert, se registra como suya y con su motivo. Los documentos se versionan junto al
+código que explican.
+
+## 12. Definición de hecho (por tarea)
 
 - [ ] Tests escritos primero, con RED y GREEN anotados.
 - [ ] Lint, tipos y tests en verde en local.
@@ -205,7 +243,7 @@ cd backend && uv run python -m evals.run
 - [ ] Criterios de aceptación del `BRIEF.md` cubiertos por la tarea marcados con su evidencia.
 - [ ] Feature document actualizado: progreso y siguiente paso.
 
-## 12. Nunca
+## 13. Nunca
 
 - Hacer push o abrir PRs sin el sí explícito de Albert (el push) o en absoluto (las PRs).
 - Commitear en `main` o `dev`, hacer force push o reescribir historia compartida.

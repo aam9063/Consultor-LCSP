@@ -1,0 +1,9 @@
+# Normalise every text file to LF in the repository and in every working tree,
+# regardless of the local core.autocrlf setting. Windows clones were checking
+# files out as CRLF, which made Prettier disagree with committed content.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.ico binary
+*.pdf binary

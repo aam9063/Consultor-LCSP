@@ -1,0 +1,135 @@
+# Set de evaluación anotado (CL-08, S6 del BRIEF / AC-10), endurecido tras la
+# primera ejecución real (evals/results/2026-11-12.md): recall@5 = 100% en
+# híbrido y en solo embeddings porque las preguntas repetían casi literalmente
+# los títulos de los artículos. Las 20 preguntas con base en la ley se
+# reformulan como las haría un profesional (situación concreta, sin copiar el
+# título del precepto) y cada número de artículo se ha verificado de nuevo
+# contra data/lcsp/lcsp-consolidada.xml (BOE-A-2017-12902, versión 2018-03-09),
+# leyendo título y texto del precepto; ningún número se reutiliza por inercia.
+# 25 entradas: 20 con base en la LCSP y 5 fuera de ella.
+
+- id: P-01
+  pregunta: "El contratista lleva tres semanas de retraso injustificado en la ejecución: ¿qué multas puede aplicarnos el órgano de contratación y cómo se hacen efectivas después?"
+  articulos_esperados: ["193", "194"]
+  respuesta_referencia: "Necesita dos artículos: el art. 193 fija penalidades diarias de 0,60 euros por cada 1.000 euros del precio (IVA excluido) y permite la resolución cuando alcancen múltiplos del 5%; el art. 194 regula su imposición por acuerdo del órgano de contratación y su efectividad mediante deducción en los pagos o sobre la garantía."
+  debe_abstenerse: false
+- id: P-02
+  pregunta: "Estamos preparando la licitación de una obra de 600.000 euros: ¿es obligatorio que las empresas licitadoras estén clasificadas y qué aporta esa clasificación frente a acreditar la solvencia por otros medios?"
+  articulos_esperados: ["77"]
+  respuesta_referencia: "El art. 77 exige la clasificación como requisito indispensable en obras con valor estimado igual o superior a 500.000 euros; por debajo de esa cifra, la empresa puede acreditar la solvencia indistintamente con la clasificación o con los requisitos específicos de los pliegos."
+  debe_abstenerse: false
+- id: P-03
+  pregunta: "Nos han adjudicado un contrato y nos piden aportar la garantía definitiva: ¿de qué porcentaje parte y sobre qué precio se calcula?"
+  articulos_esperados: ["107"]
+  respuesta_referencia: "El art. 107 fija una garantía del 5% del precio final ofertado, IVA excluido, a constituir por los licitadores con la mejor oferta; el órgano de contratación puede eximir de ella de forma justificada, pero nunca en obras ni en concesión de obras."
+  debe_abstenerse: false
+- id: P-04
+  pregunta: "Solo necesito comprar material de oficina por unos 12.000 euros sin montar todo el expediente de licitación: ¿qué dice la ley sobre las compras de esta cuantía y qué documentación exige?"
+  articulos_esperados: ["118"]
+  respuesta_referencia: "El art. 118 considera contratos menores los de obras por debajo de 40.000 euros y los de suministro o servicios por debajo de 15.000 euros, con expediente reducido: informe motivado de necesidad, aprobación del gasto y factura."
+  debe_abstenerse: false
+- id: P-05
+  pregunta: "Para agilizar una licitación de servicios de 90.000 euros cuyos criterios son todos automáticos, ¿qué procedimiento ligero nos permite la ley y qué condiciones tiene?"
+  articulos_esperados: ["159"]
+  respuesta_referencia: "El art. 159 regula el procedimiento abierto simplificado: valor estimado igual o inferior a 2.000.000 de euros en obras y a 100.000 euros en suministros y servicios, sin criterios de juicio de valor (o sin superar el 25% de ponderación, 45% en prestaciones intelectuales) y plazo mínimo de presentación de 15 días desde el perfil de contratante."
+  debe_abstenerse: false
+- id: P-06
+  pregunta: "Estamos redactando los criterios con los que puntuaremos las ofertas: ¿qué clases de criterios admite la ley y qué se puede llegar a valorar?"
+  articulos_esperados: ["145"]
+  respuesta_referencia: "El art. 145 exige adjudicar por la mejor relación calidad-precio con una pluralidad de criterios: económicos y cualitativos (incluidos aspectos medioambientales o sociales vinculados al objeto), o precio o coste con la mejor relación coste-eficacia."
+  debe_abstenerse: false
+- id: P-07
+  pregunta: "En una licitación llega una oferta sospechosamente barata, muy por debajo de las demás: ¿qué debe hacer el órgano de contratación antes de poder excluir a ese licitador?"
+  articulos_esperados: ["149"]
+  respuesta_referencia: "El art. 149 solo permite excluir una oferta inviable por ser anormalmente baja tras tramitar el procedimiento del artículo: identificarla aplicando los parámetros objetivos de los pliegos, pedir su justificación y excluir solo si el licitador no prueba la viabilidad de la oferta."
+  debe_abstenerse: false
+- id: P-08
+  pregunta: "El adjudicatario nos pregunta si puede encargar parte de la prestación a otras empresas: ¿qué condiciones pone la ley para eso y en qué plazo tiene después que pagarles?"
+  articulos_esperados: ["215", "216"]
+  respuesta_referencia: "Necesita dos artículos: el art. 215 permite la realización parcial de la prestación por terceros con sujeción a los pliegos, con comunicación escrita al órgano de contratación y acreditación de la aptitud del subcontratista; el art. 216 obliga a aceptar los bienes o servicios en un máximo de 30 días y a pagar a los subcontratistas en los plazos de la Ley 3/2004, con intereses de demora."
+  debe_abstenerse: false
+- id: P-09
+  pregunta: "Vamos a comprar equipos informáticos por un valor estimado de 150.000 euros desde la Administración General del Estado: ¿estamos sujetos a regulación armonizada?"
+  articulos_esperados: ["21"]
+  respuesta_referencia: "El art. 21 fija el umbral de regulación armonizada de los suministros en 135.000 euros para la Administración General del Estado, sus organismos autónomos y las entidades gestoras de la Seguridad Social, y en 209.000 euros para los demás contratantes; 150.000 euros lo superan."
+  debe_abstenerse: false
+- id: P-10
+  pregunta: "Un hospital del sector público autonómico va a contratar un servicio de mantenimiento por 250.000 euros: ¿supera el umbral de contratación armonizada y hay casos con cifras distintas?"
+  articulos_esperados: ["22"]
+  respuesta_referencia: "El art. 22 fija el umbral de regulación armonizada de los servicios en 135.000 euros (Administración General del Estado y organismos autónomos), 209.000 euros para el resto de entidades del sector público y 750.000 euros para los servicios sociales y otros del anexo IV; los 250.000 euros del hospital superan su umbral de 209.000 euros."
+  debe_abstenerse: false
+- id: P-11
+  pregunta: "¿Podemos pedir a los licitadores un depósito al inicio del procedimiento para responder del mantenimiento de sus ofertas y, en tal caso, hasta qué porcentaje podemos exigir?"
+  articulos_esperados: ["106"]
+  respuesta_referencia: "El art. 106 establece que en el procedimiento no procede exigir garantía provisional salvo que, excepcionalmente y por interés público, se justifique motivadamente en el expediente; en tal caso su importe no puede superar el 3% del presupuesto base de licitación, IVA excluido."
+  debe_abstenerse: false
+- id: P-12
+  pregunta: "El pliego va a fijar cuánto dura el contrato y si habrá prórrogas: ¿qué exige la ley sobre cómo fijar esos plazos y sobre el preaviso cuando llega el vencimiento?"
+  articulos_esperados: ["29"]
+  respuesta_referencia: "El art. 29 exige fijar la duración atendiendo a la naturaleza de las prestaciones y someter periódicamente a concurrencia; la prórroga es obligatoria para el empresario si se preavisa al menos dos meses antes del vencimiento (salvo plazo mayor en el pliego) y la demora en la ejecución puede dar lugar a ampliación de plazo sin perjuicio de las penalidades."
+  debe_abstenerse: false
+- id: P-13
+  pregunta: "Un licitador tiene una condena firme por cohecho: ¿puede contratar con la Administración y en qué otras circunstancias está prohibido contratar?"
+  articulos_esperados: ["71"]
+  respuesta_referencia: "El art. 71 prohíbe contratar a quienes han sido condenados en firme por delitos como cohecho, fraude, blanqueo o contra la Hacienda Pública, entre otras circunstancias tasadas: concursos, incumplimientos contractuales graves, conflictos de interés e incumplimientos laborales o de Seguridad Social."
+  debe_abstenerse: false
+- id: P-14
+  pregunta: "Estamos definiendo la documentación que deben aportar los licitadores para acreditar su capacidad económica: ¿qué medios acepta la ley para ello?"
+  articulos_esperados: ["87"]
+  respuesta_referencia: "El art. 87 admite acreditar la solvencia económica y financiera, a elección del órgano de contratación, con el volumen anual de negocios, un seguro de responsabilidad civil por riesgos profesionales o el patrimonio neto (o la ratio entre activos y pasivos), con los importes mínimos fijados en el anuncio y los pliegos."
+  debe_abstenerse: false
+- id: P-15
+  pregunta: "Al preparar el expediente me piden justificar el importe que servirá de referencia para decidir el procedimiento: ¿qué debe incluir exactamente ese cálculo, por ejemplo las prórrogas o las modificaciones previsibles?"
+  articulos_esperados: ["101"]
+  respuesta_referencia: "El art. 101 define el valor estimado como el importe total, IVA excluido, que el órgano de contratación prevé pagar, incluyendo como mínimo las prórrogas eventuales, las primas o pagos a licitadores y, si se previeron, el importe máximo alcanzable con las modificaciones al alza."
+  debe_abstenerse: false
+- id: P-16
+  pregunta: "La empresa adjudicataria quiere saber cómo se firma el contrato: ¿ante qué documento se hace, quién soporta el coste si se eleva a escritura pública y se puede tocar el contenido de la adjudicación?"
+  articulos_esperados: ["153"]
+  respuesta_referencia: "El art. 153 exige formalizar el contrato en documento administrativo que se ajuste exactamente a las condiciones de la licitación; el contratista puede solicitar elevarlo a escritura pública por su cuenta y en ningún caso pueden incluirse cláusulas que alteren los términos de la adjudicación."
+  debe_abstenerse: false
+- id: P-17
+  pregunta: "Con la urgencia de una obra, ¿en qué casos puede el órgano de contratación adjudicar directamente sin publicar anuncio en el perfil de contratante?"
+  articulos_esperados: ["168"]
+  respuesta_referencia: "El art. 168 recoge los supuestos tasados de negociado sin publicidad: falta de ofertas o solicitudes adecuadas, urgencia, suministros de investigación o entregas adicionales del proveedor inicial, adquisiciones en mercados organizados, repetición de obras o servicios similares y otros casos listados."
+  debe_abstenerse: false
+- id: P-18
+  pregunta: "Un proveedor nos reclama porque llevamos 45 días sin pagarle una certificación ya aprobada: ¿en qué plazo debe pagar la Administración y qué genera pasarse de ese plazo?"
+  articulos_esperados: ["198"]
+  respuesta_referencia: "El art. 198 obliga a abonar el precio dentro de los 30 días siguientes a la aprobación de las certificaciones o a la conformidad de los bienes entregados o servicios prestados; si se demora, la Administración debe abonar intereses de demora."
+  debe_abstenerse: false
+- id: P-19
+  pregunta: "El contratista lleva un retraso enorme y dudamos si continuar con él: ¿por qué causas puede resolverse el contrato antes de terminar la prestación?"
+  articulos_esperados: ["211"]
+  respuesta_referencia: "El art. 211 enumera las causas de resolución: muerte o incapacidad del contratista, concurso o insolvencia, mutuo acuerdo, demora en el cumplimiento (retraso superior a un tercio del plazo), demora de la Administración en el pago, incumplimiento de las obligaciones esenciales e imposibilidad de ejecutar la prestación."
+  debe_abstenerse: false
+- id: P-20
+  pregunta: "La obra está terminada y vamos a hacer la recepción: ¿cómo se desarrolla el acta, cuándo empieza el periodo de garantía y quién responde si años después aparecen vicios ocultos?"
+  articulos_esperados: ["243", "244"]
+  respuesta_referencia: "Necesita dos artículos: el art. 243 regula la recepción (acta levantada por el técnico de la Administración, con la posibilidad de no recibirse la obra hasta subsanar defectos) y sitúa el inicio del plazo de garantía en la recepción; el art. 244 hace responder al contratista de los vicios ocultos durante 15 años desde la recepción."
+  debe_abstenerse: false
+- id: P-21
+  pregunta: "¿Qué tipo de IVA se aplica a una obra de reforma en una vivienda?"
+  articulos_esperados: []
+  respuesta_referencia: "Sin base en la LCSP: el IVA se regula en la Ley 37/1992 del IVA y sus normas de desarrollo."
+  debe_abstenerse: true
+- id: P-22
+  pregunta: "¿Cuántos días de vacaciones le corresponden por ley a un trabajador al año?"
+  articulos_esperados: []
+  respuesta_referencia: "Sin base en la LCSP: las vacaciones anuales las fija el Estatuto de los Trabajadores y el convenio colectivo."
+  debe_abstenerse: true
+- id: P-23
+  pregunta: "¿A partir de qué edad puede jubilarse un trabajador y con qué porcentaje de su base reguladora?"
+  articulos_esperados: []
+  respuesta_referencia: "Sin base en la LCSP: la jubilación se regula en la Ley General de la Seguridad Social."
+  debe_abstenerse: true
+- id: P-24
+  pregunta: "¿Qué obligaciones tiene una empresa para cumplir el RGPD en el tratamiento de datos personales?"
+  articulos_esperados: []
+  respuesta_referencia: "Sin base en la LCSP: la protección de datos se rige por el RGPD y la LOPDGDD."
+  debe_abstenerse: true
+- id: P-25
+  pregunta: "¿En qué plazo debe el arrendador devolver la fianza al terminar el contrato de alquiler?"
+  articulos_esperados: []
+  respuesta_referencia: "Sin base en la LCSP: la fianza de los arrendamientos se regula en la Ley 29/1994 de Arrendamientos Urbanos."
+  debe_abstenerse: true

@@ -1,0 +1,66 @@
+name: consultor-lcsp
+
+services:
+  db:
+    image: pgvector/pgvector:pg18
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-lcsp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-local-dev}
+      POSTGRES_DB: ${POSTGRES_DB:-lcsp}
+    ports:
+      - "${LCSP_DB_PORT:-5433}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lcsp} -d ${POSTGRES_DB:-lcsp}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  api:
+    build:
+      context: ./backend
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-lcsp}:${POSTGRES_PASSWORD:-change-me-local-dev}@db:5432/${POSTGRES_DB:-lcsp}
+      NAN_API_KEY: ${NAN_API_KEY:-}
+      NAN_BASE_URL: ${NAN_BASE_URL:-https://api.nan.builders/v1}
+      NAN_CHAT_MODEL: ${NAN_CHAT_MODEL:-deepseek-v4-flash}
+      NAN_EMBEDDING_MODEL: ${NAN_EMBEDDING_MODEL:-qwen3-embedding}
+      NAN_RERANK_MODEL: ${NAN_RERANK_MODEL:-rerank}
+      EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-4096}
+      RETRIEVAL_TOP_K: ${RETRIEVAL_TOP_K:-6}
+      RERANK_THRESHOLD: ${RERANK_THRESHOLD:-0.85}
+      CORS_ORIGINS: '["http://localhost:${WEB_PORT:-8080}"]'
+    ports:
+      - "${API_PORT:-8001}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  web:
+    build:
+      context: ./frontend
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  pgdata:

@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Consultor LCSP · Consulta</title>
+<script src="./vendor/react.js"></script>
+<script src="./vendor/react-dom.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0F6B5C}a:hover{color:#0A4D42}
+</style>
+</helmet>
+<div style="min-height: 1000px; background: #F6F6F3; color: #17181C; font-family: Inter, system-ui, sans-serif; font-size: 15px">
+  <header style="background: #FFFFFF; border-bottom: 1px solid #E3E3DE">
+    <div style="max-width: 1360px; margin: 0 auto; padding: 14px 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 24px">
+      <div style="display: flex; align-items: center; gap: 10px">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0F6B5C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M5 21h14"></path><path d="M6 7h12"></path><path d="M6 7l-3 7a3 3 0 0 0 6 0z"></path><path d="M18 7l-3 7a3 3 0 0 0 6 0z"></path></svg>
+        <span style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px">Consultor LCSP</span>
+      </div>
+      <nav aria-label="Principal" style="display: flex; gap: 4px; flex-wrap: wrap">
+        <a href="LcspConsulta.dc.html" style="padding: 10px 14px; border-radius: 8px; background: #E5F2EF; color: #0F6B5C; font-weight: 600; text-decoration: none">Consulta</a>
+        <a href="LcspRevisor.dc.html" style="padding: 10px 14px; border-radius: 8px; color: #3D4048; text-decoration: none">Revisor de cláusulas</a>
+      </nav>
+      <span style="margin-left: auto; color: #5B5E66; font-size: 13px">Ley 9/2017 · texto consolidado BOE [fecha de versión]</span>
+    </div>
+  </header>
+
+  <div style="background: #FFF8E6; border-bottom: 1px solid #F0E2B8; color: #6B4600; font-size: 13px">
+    <div style="max-width: 1360px; margin: 0 auto; padding: 8px 24px">Herramienta de apoyo. No es asesoramiento jurídico: comprueba siempre el artículo citado.</div>
+  </div>
+
+  <main style="max-width: 1360px; margin: 0 auto; padding: 24px; display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+    <nav aria-label="Historial de la sesión" style="flex: 1 1 220px; min-width: 0; display: flex; flex-direction: column; gap: 6px">
+      <h2 style="margin: 0 0 6px; font-size: 13px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #5B5E66">Esta sesión</h2>
+      <sc-for list="{{history}}" as="h" hint-placeholder-count="4">
+        <a href="#consulta" style="{{h.style}}">{{h.q}}</a>
+      </sc-for>
+    </nav>
+
+    <section aria-label="Consulta" style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+      <form style="background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+        <label for="pregunta" style="font-weight: 600">Tu pregunta sobre la LCSP</label>
+        <textarea id="pregunta" rows="2" style="box-sizing: border-box; width: 100%; padding: 12px 14px; border: 1px solid #D4D4CE; border-radius: 8px; font: inherit; resize: vertical">¿Qué garantía definitiva tengo que depositar si me adjudican una obra?</textarea>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+          <span style="color: #5B5E66; font-size: 13px">Puedes preguntar por un artículo concreto: "¿qué dice el art. 193?"</span>
+          <button type="submit" style="margin-left: auto; min-height: 44px; padding: 0 18px; border: 0; border-radius: 10px; background: #0F6B5C; color: #FFFFFF; font: inherit; font-weight: 600; cursor: pointer">Consultar</button>
+        </div>
+      </form>
+
+      <article style="background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px">
+          <h2 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 600">Respuesta</h2>
+          <span style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: #E6F4EC; color: #1E7A46; font-size: 13px; font-weight: 600">✓ 3 de 3 citas validadas</span>
+          <span style="color: #5B5E66; font-size: 13px">deepseek-v4-flash · 4,2 s</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 12px; line-height: 1.6">
+          <sc-for list="{{claims}}" as="c" hint-placeholder-count="3">
+            <p style="margin: 0">{{c.text}}
+              <sc-for list="{{c.cites}}" as="ci" hint-placeholder-count="1">
+                <button type="button" onClick="{{ci.pick}}" aria-label="{{ci.aria}}" style="{{ci.style}}">{{ci.label}}</button>
+              </sc-for>
+            </p>
+          </sc-for>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; border-top: 1px solid #EDEDE8; padding-top: 12px">
+          <button type="button" aria-label="Respuesta útil" style="width: 44px; height: 44px; border: 1px solid #D4D4CE; border-radius: 8px; background: #FFFFFF; cursor: pointer">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3D4048" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10v11H4V10zM7 10l4-7a2 2 0 0 1 3 2l-1 5h6a2 2 0 0 1 2 2l-2 7a2 2 0 0 1-2 2H7"></path></svg>
+          </button>
+          <button type="button" aria-label="Respuesta no útil" style="width: 44px; height: 44px; border: 1px solid #D4D4CE; border-radius: 8px; background: #FFFFFF; cursor: pointer">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3D4048" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="transform: rotate(180deg)"><path d="M7 10v11H4V10zM7 10l4-7a2 2 0 0 1 3 2l-1 5h6a2 2 0 0 1 2 2l-2 7a2 2 0 0 1-2 2H7"></path></svg>
+          </button>
+          <span style="align-self: center; color: #5B5E66; font-size: 13px">Respuesta de ejemplo para el diseño.</span>
+        </div>
+      </article>
+
+      <details open="" style="background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 12px; padding: 14px 18px">
+        <summary style="cursor: pointer; font-weight: 600; min-height: 32px">Artículos recuperados (búsqueda híbrida + rerank)</summary>
+        <div style="overflow-x: auto; margin-top: 8px">
+          <table style="width: 100%; min-width: 480px; border-collapse: collapse; font-size: 14px; text-align: left">
+            <thead>
+              <tr style="color: #5B5E66; font-size: 13px">
+                <th scope="col" style="padding: 8px 6px; font-weight: 500">Artículo</th>
+                <th scope="col" style="padding: 8px 6px; font-weight: 500">Título</th>
+                <th scope="col" style="padding: 8px 6px; font-weight: 500">Rerank</th>
+                <th scope="col" style="padding: 8px 6px; font-weight: 500">Citado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{retrieved}}" as="r" hint-placeholder-count="5">
+                <tr style="border-top: 1px solid #EDEDE8">
+                  <td style="padding: 8px 6px; font-weight: 600">{{r.art}}</td>
+                  <td style="padding: 8px 6px; color: #3D4048">{{r.titulo}}</td>
+                  <td style="padding: 8px 6px">
+                    <div style="display: flex; align-items: center; gap: 8px">
+                      <div style="width: 80px; height: 6px; background: #EDEDE8; border-radius: 3px; overflow: hidden"><div style="{{r.bar}}"></div></div>
+                      <span style="font-variant-numeric: tabular-nums">{{r.score}}</span>
+                    </div>
+                  </td>
+                  <td style="padding: 8px 6px; color: #3D4048">{{r.citado}}</td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </section>
+
+    <aside aria-label="Texto del artículo" style="flex: 1 1 340px; min-width: 0; background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+      <span style="color: #5B5E66; font-size: 13px">{{art.ruta}}</span>
+      <h2 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 600">{{art.num}}</h2>
+      <p style="margin: 0; font-weight: 600">{{art.titulo}}</p>
+      <div style="padding: 14px; border-radius: 8px; background: #F4F8F7; border: 1px solid #D7E7E2; line-height: 1.6; font-size: 14px">{{art.texto}}</div>
+      <a href="#boe" style="font-size: 14px; min-height: 44px; display: inline-flex; align-items: center">Abrir en el BOE ↗</a>
+    </aside>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { art: '107' };
+  }
+  renderVals() {
+    var self = this;
+    var arts = {
+      '107': { num: 'Artículo 107', titulo: 'Exigencia y cuantía de la garantía definitiva', ruta: 'Libro I · Título III · Capítulo III', texto: '[Aquí se muestra el texto consolidado del artículo 107 tal como se ingirió del BOE, con el apartado citado resaltado.]' },
+      '108': { num: 'Artículo 108', titulo: 'Forma de prestación de la garantía definitiva', ruta: 'Libro I · Título III · Capítulo III', texto: '[Aquí se muestra el texto consolidado del artículo 108 tal como se ingirió del BOE.]' },
+      '150': { num: 'Artículo 150', titulo: 'Clasificación de las ofertas y adjudicación del contrato', ruta: 'Libro II · Título I · Capítulo I', texto: '[Aquí se muestra el texto consolidado del artículo 150, apartado 2, tal como se ingirió del BOE.]' }
+    };
+    var chipBase = 'display:inline-flex;align-items:center;margin-left:6px;min-height:30px;padding:0 10px;border-radius:999px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;vertical-align:middle;';
+    var cite = function (key, label) {
+      var active = self.state.art === key;
+      return {
+        label: label,
+        aria: 'Ver ' + label,
+        pick: function () { self.setState({ art: key }); },
+        style: chipBase + (active ? 'background:#0F6B5C;color:#FFFFFF;border:1px solid #0F6B5C;' : 'background:#E5F2EF;color:#0F6B5C;border:1px solid #BFDCD4;')
+      };
+    };
+    var claims = [
+      { text: 'Con carácter general, la garantía definitiva es el 5 % del precio final ofertado, IVA excluido.', cites: [cite('107', 'art. 107.1')] },
+      { text: 'Puede constituirse en efectivo o valores, mediante aval o con un seguro de caución.', cites: [cite('108', 'art. 108.1')] },
+      { text: 'La constituye el licitador que presenta la mejor oferta cuando el órgano de contratación se lo requiere, dentro del plazo que fija ese requerimiento.', cites: [cite('150', 'art. 150.2')] }
+    ];
+    var retrieved = [
+      { art: 'Art. 107', titulo: 'Exigencia y cuantía de la garantía definitiva', score: '0,94', citado: 'Sí' },
+      { art: 'Art. 108', titulo: 'Forma de prestación de la garantía definitiva', score: '0,81', citado: 'Sí' },
+      { art: 'Art. 150', titulo: 'Clasificación de las ofertas y adjudicación', score: '0,77', citado: 'Sí' },
+      { art: 'Art. 106', titulo: 'Exigencia y régimen de la garantía provisional', score: '0,52', citado: 'No' },
+      { art: 'Art. 111', titulo: 'Devolución y cancelación de las garantías definitivas', score: '0,48', citado: 'No' }
+    ].map(function (r) {
+      var pct = Math.round(parseFloat(r.score.replace(',', '.')) * 100);
+      return Object.assign({}, r, { bar: 'height:6px;width:' + pct + '%;background:#0F6B5C' });
+    });
+    var hBase = 'display:block;padding:10px 12px;border-radius:8px;font-size:14px;line-height:1.4;text-decoration:none;';
+    var history = [
+      { q: '¿Qué garantía definitiva tengo que depositar si me adjudican una obra?', active: true },
+      { q: '¿Desde qué importe se exige clasificación en obras?' },
+      { q: '¿Qué dice el art. 193?' },
+      { q: '¿Cuánto IVA lleva una certificación de obra?', note: true }
+    ].map(function (h) {
+      return { q: h.q, style: hBase + (h.active ? 'background:#E5F2EF;color:#0F6B5C;font-weight:600;' : 'color:#3D4048;') };
+    });
+    return {
+      art: arts[this.state.art],
+      claims: claims,
+      retrieved: retrieved,
+      history: history
+    };
+  }
+}
+</script>
+</body>
+</html>
