@@ -397,6 +397,24 @@ curl localhost:8001/health
 
 **Review status:** per-slice native reviews: two `approved` with burned authority, one critical finding refuted, `medium` slices deferred to this closure; 4R closure review documented above. CI green on the branch.
 
+### Incidente de GitGuardian (2026-11-12)
+
+El escáner de secretos marcó tres «Generic Password» sobre el commit `029f413`: la contraseña del
+Postgres de desarrollo (`lcsp`) en `docker-compose.yml` (líneas 8 y 24) y en el servicio efímero de
+`.github/workflows/ci.yml` (línea 28). **No era una credencial real**: no abre nada fuera del
+contenedor local ni del runner desechable.
+
+Qué se hizo:
+
+1. **CI**: la contraseña del servicio se deriva por run (`ci-${{ github.run_id }}`), así no queda
+   ningún literal con forma de secreto en el workflow.
+2. **Compose**: se eliminó la contraseña por defecto incrustada. Un `:?` inicial rompía AC-01
+   porque el template versionado dejó el valor vacío, así que se usa un placeholder explícito
+   (`change-me-local-dev`): el stack arranca en un clon limpio y un valor real siempre gana.
+3. **Decisión de Albert**: los tres incidentes históricos se desestimaron como **falso positivo**
+   en el panel de GitGuardian. No se reescribió historia: está prohibido en `AGENTS.md` y rompería
+   los hashes que citan este documento y los documentos de aprendizaje.
+
 ## Log
 
 - **L1 (solicitud original de Albert, literal):** "Lee el BRIEF.md y el AGENTS.md y aunque en el brief ponga que este proyecto se va a empezar si se acaba primero el de radar de pliegos, no va a ser asi, vas a hacerlo a la vez que se hace el otro"
@@ -405,4 +423,6 @@ curl localhost:8001/health
 - **L4 (decisión de Albert, 2026-11-12):** bootstrap de Git = commit inicial en `main` (AGENTS.md, BRIEF.md, `.gitignore`), luego `dev` y trabajo en `feat/cl-01-skeleton`. Ejecutado: `2225e7b` en `main`, `dev` y `feat/cl-01-skeleton` desde ahí.
 - **L5 (hallazgo, 2026-11-12):** aparecen sin commitear `frontend/docs/mock/LcspConsulta.dc.html` y `frontend/docs/mock/LcspRevisor.dc.html` (mockups de la UI, no generados por el agente). Quedan fuera de los commits de CL-01 a la espera de decisión.
 - **L6 (decisión de Albert, 2026-11-12):** los dos mockups se excluyen de la candidata de revisión; `.env.example` se versiona (el fichero lo crea Albert, sin secretos). La lineage `review-3d828745be58ead1` se abandona con `operator_disposition` y queda en cuarentena.
+- **L8 (decisión de Albert, 2026-11-12):** los tres incidentes de GitGuardian se desestiman como falso positivo; no se toca el historial. La contraseña de desarrollo deja de existir como literal en el tip del repo.
+- **L9 (fallo de proceso propio, 2026-11-12):** tras cambiar el comportamiento a abstención se actualizó el test unitario pero no se volvió a ejecutar `pytest tests/integration`, que seguía fijando la conducta anterior. CI lo detectó. Regla adoptada: un cambio de comportamiento exige correr **las dos** suites antes de dar los gates por verdes.
 - **L7 (corrección propia, 2026-11-12):** el XML del BOE es UTF-8 válido; el diagnóstico anterior de ISO-8859-1 era un artefacto de la consola. Corregidos `data/lcsp/README.md` y el docstring del parser.
