@@ -101,7 +101,7 @@ async def test_low_best_score_abstains_with_the_exact_message_and_no_generation(
 # --- AC-06: validation, exactly one retry, unsupported marking ----------------
 
 
-async def test_unbacked_citation_is_retried_once_and_then_marked_unsupported() -> None:
+async def test_answering_without_any_backed_citation_abstains_after_one_retry() -> None:
     chunks = await _ingest_fixture()
     bad_answer = "La garantía definitiva es el 5 por 100 del importe de adjudicación [art. 999]."
     llm = FakeLLMClient(
@@ -119,10 +119,13 @@ async def test_unbacked_citation_is_retried_once_and_then_marked_unsupported() -
     body = response.json()
     assert llm.generation_calls == 2, "exactly one retry"
     assert "art. 999" in llm.generation_requests[1]["user"], "the retry carries the feedback"
-    assert body["abstencion"] is False
-    assert body["respuesta"] == bad_answer, "the answer is kept, not dropped"
-    assert body["advertencia"] is not None and "art. 999" in body["advertencia"]
-    assert body["afirmaciones_no_respaldadas"] == [bad_answer]
+    # An answer with no backed citation is worse than no answer: the service
+    # abstains instead of shipping it with a warning.
+    assert body["abstencion"] is True
+    assert body["respuesta"] == "No encuentro base en la LCSP para responder esto"
+    assert body["motivo_abstencion"] is not None and "art. 999" in body["motivo_abstencion"]
+    assert body["afirmaciones_no_respaldadas"] == []
+    assert body["advertencia"] is None
     assert body["citas"] == []
 
 
