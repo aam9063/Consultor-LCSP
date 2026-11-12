@@ -21,8 +21,9 @@ playwright-report/
 test-results/
 *.tsbuildinfo
 
-# Data and eval outputs
+# Data files are downloaded per machine, never committed (see data/lcsp/README.md)
 data/lcsp/*.pdf
+data/lcsp/*.xml
 evals/results/*.md
 
 # OS / editors
