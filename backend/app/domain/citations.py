@@ -21,6 +21,7 @@ __all__ = [
     "CitationReport",
     "Claim",
     "build_chunk_index",
+    "citation_backed",
     "parse_citations",
     "split_claims",
     "validate_answer",
@@ -133,7 +134,8 @@ def build_chunk_index(
     return index
 
 
-def _citation_backed(citation: Citation, index: Mapping[str, set[str | None]]) -> bool:
+def citation_backed(citation: Citation, index: Mapping[str, set[str | None]]) -> bool:
+    """Whether `citation` points to an article (and apartado) in the index."""
     apartados = index.get(citation.articulo)
     if apartados is None:
         return False
@@ -148,13 +150,13 @@ def _citation_backed(citation: Citation, index: Mapping[str, set[str | None]]) -
 def validate_answer(text: str, index: Mapping[str, set[str | None]]) -> CitationReport:
     """Validate every citation of `text` against the retrieved-chunk index."""
     citations = parse_citations(text)
-    valid = tuple(citation for citation in citations if _citation_backed(citation, index))
-    invalid = tuple(citation for citation in citations if not _citation_backed(citation, index))
+    valid = tuple(c for c in citations if citation_backed(c, index))
+    invalid = tuple(c for c in citations if not citation_backed(c, index))
     claims = tuple(
         Claim(
             text=claim_text,
             citations=claim_citations,
-            supported=any(_citation_backed(citation, index) for citation in claim_citations),
+            supported=any(citation_backed(citation, index) for citation in claim_citations),
         )
         for claim_text, claim_citations in (
             (claim, parse_citations(claim)) for claim in split_claims(text)
