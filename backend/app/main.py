@@ -7,6 +7,8 @@ from app.adapters.llm import LLMError, MissingAPIKeyError
 from app.api.answers import router as answers_router
 from app.api.health import router as health_router
 from app.api.retrieval import router as retrieval_router
+from app.api.revisions import router as revisions_router
+from app.domain.clauses import ClauseTooLongError
 
 _MISSING_KEY_MESSAGE = "NAN_API_KEY is not configured; the LLM-backed endpoints are unavailable."
 
@@ -26,13 +28,27 @@ async def _llm_error(_: Request, exc: Exception) -> JSONResponse:
     return JSONResponse(status_code=502, content=_error_body("llm_unavailable", str(exc)))
 
 
+async def _clause_too_long(_: Request, exc: Exception) -> JSONResponse:
+    if not isinstance(exc, ClauseTooLongError):  # pragma: no cover - FastAPI passes the type
+        raise exc
+    return JSONResponse(
+        status_code=422,
+        content=_error_body(
+            "clausula_demasiado_larga",
+            f"La cláusula tiene {exc.word_count} palabras y el límite es {exc.max_words}.",
+        ),
+    )
+
+
 def create_app() -> FastAPI:
     app = FastAPI(title="Consultor LCSP", version="0.1.0")
     app.add_exception_handler(MissingAPIKeyError, _missing_api_key)
     app.add_exception_handler(LLMError, _llm_error)
+    app.add_exception_handler(ClauseTooLongError, _clause_too_long)
     app.include_router(health_router)
     app.include_router(retrieval_router)
     app.include_router(answers_router)
+    app.include_router(revisions_router)
     return app
 
 
