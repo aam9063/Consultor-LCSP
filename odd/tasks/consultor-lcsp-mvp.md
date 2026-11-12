@@ -97,7 +97,7 @@ Otras leyes o normativa (solo LCSP consolidada); descarga automática del BOE en
 | CL-06 | Revisor de cláusulas | S4, S14 | `76bad65`, `2968a8b` | hecho |
 | CL-07 | Frontend: consulta con chips y panel, revisor, historial | S5, S15 | `cca1d58`, `1fc24af`, `b27bd43`, `4341dab` | hecho |
 | CL-08 | Set de 25 preguntas y evaluación | S6, S16 | `a45ef22`, `170b31d`, `d5826d6` | hecho |
-| CL-09 | README y cierre de la Fase 1 | S18 | pendiente | — |
+| CL-09 | README y cierre de la Fase 1 | S18 | ver commit de cierre | hecho |
 
 ## Evidencias de verificación
 
@@ -335,11 +335,67 @@ Tres corridas sobre el corpus real (580 chunks, `qwen3-embedding` + `rerank` + `
 
 ## Progreso y siguiente paso
 
-- Progreso: 8/9 tareas implementadas y verificadas; CL-08 cerrada con AC-10 cumplido y revisión nativa `approved`.
+- Progreso: 9/9 tareas implementadas y verificadas. Fase 1 cerrada con AC-10 cumplido, RDD por slice y revisión 4R de cierre.
 - RDD pendiente: (a) aplicar la corrección de `R4-async-singleton-race` (cerrojo async en la inicialización del engine, con test), (b) decidir si los dos mockups entran en la candidata, (c) revisar los slices `web` e `infra`.
-- Siguiente paso: CL-09 (README con las métricas reales, borrador de PR y revisión 4R del slice completo).
+- Siguiente paso: decisión de Albert sobre el push final de `feat/lcsp-mvp` y la apertura del PR (él los abre).
+- Trabajo posterior anotado: `.env.example` con el umbral viejo, reintento ante errores de red en `NanLLMClient`, `R3-004` del frontend, y el valor del híbrido sólo demostrable con un corpus mayor.
 - Trabajo posterior anotado: los tres avisos del revisor (`R3-002`, `R3-003`, `R3-004`); el e2e del CI solo se ejercita en un PR.
 - Pendiente de decisión: endurecer `NanLLMClient` para errores de conexión/timeout antes de la carga real de 37 lotes.
+
+### CL-09 · README y cierre de la Fase 1
+
+- `README.md` con arranque, ingesta, evaluación y **las métricas reales** de AC-10, más la advertencia honesta de que el híbrido no superó a solo embeddings.
+- Verificado contra lo ejecutado en esta sesión: 580 chunks, 428 preceptos, 37 lotes, umbral 0,85, puertos 5433/8001/8080.
+
+### Revisión 4R de cierre (obligatoria en este repo antes del push final)
+
+Los slices individuales se revisaron de forma nativa (`medium` diferido o `high` revisado y aprobado). El slice completo no cabe en el presupuesto del revisor nativo (12.000+ líneas; el límite se comprobó cuando rechazó 5.106), así que la revisión de cierre se hace explícita con las cuatro lentes, como permite AGENTS.md §5.
+
+**Risk**
+- Sin credenciales en el repo: `.env` ignorado, `.env.example` versionado sin valores. La clave sólo viaja por variable de entorno.
+- El runner de evaluación es el único punto que gasta cuota; `--calibrate` no genera y el workflow de evals sólo corre a mano.
+- Sin autenticación ni persistencia: el alcance lo dice el BRIEF. No hay datos personales almacenados.
+- **Hallazgo:** `.env.example` conserva `RERANK_THRESHOLD=0.35` (lo creó Albert antes de la calibración) mientras el default del código es 0,85. Un clon nuevo copiaría el valor viejo y volvería a abstenerse de más. Requiere que Albert edite esa línea; el agente no puede escribir rutas `.env*`.
+
+**Resilience**
+- Reintentos acotados con backoff y jitter en embeddings y rerank; errores del proveedor mapeados a 503/502 tipados; la ausencia de clave falla al construir el cliente, no a mitad de una ingesta.
+- Ingesta idempotente verificada a escala: una segunda pasada no inserta ni gasta embeddings.
+- **Hallazgo (anotado, sin corregir):** `NanLLMClient` no reintenta `APIConnectionError` ni timeouts de red. En la carga real de 37 lotes funcionó, pero un corte de red aborta la ingesta entera.
+
+**Readability**
+- `domain/` puro y con nombres del derecho, no del framework; el README explica el flujo completo en pocos comandos; cada decisión con su motivo en el feature document.
+- **Hallazgo menor:** `R3-004` de la primera revisión de UI sigue abierto (cast silencioso en `answerText.ts`).
+
+**Reliability**
+- 160+ tests unitarios, integración contra Postgres real y una suite explícita contra la ley de verdad; los tests de AC-02/AC-06/AC-07/AC-08/AC-09 existen y fallan por el motivo correcto.
+- CI verificado tres veces en verde; `evals/` entró en los gates tras el defecto del string roto.
+- **Hallazgo:** el e2e del CI nunca se ha ejecutado (sólo corre en PR). La suite sí se corrió en local contra el stack.
+
+## PR draft (English, for Albert to open)
+
+**Title:** `feat: Consultor LCSP MVP — cited answers over the Public Procurement Act`
+
+**Summary**
+
+- Ingests the consolidated LCSP (`BOE-A-2017-12902`) into 580 article-level chunks, idempotently, with 4096-dimension embeddings and a generated `tsvector` using a calibrated `spanish_unaccent` configuration.
+- Retrieval fuses an exact pgvector scan with full-text search through Reciprocal Rank Fusion, reranks the best candidates and puts a directly named article first.
+- Answers cite `[art. X]` / `[art. X.Y]`; every citation is validated in code, one retry is allowed, and an answer with no backed citation becomes an abstention instead of an unsupported claim.
+- Clause reviewer returns typed warnings (`posible_incumplimiento`, `ambiguedad`, `ok`) with retrieved articles and the literal clause fragment.
+- React UI built from the design mockups: citation chips open a side panel, retrieved chunks stay visible with their scores, session history in memory.
+- Evaluation harness: 25 annotated questions, per-question JSON audit, `--calibrate` mode that spends no generation, and a manual workflow.
+
+**Acceptance criteria covered:** AC-01 through AC-11 executed and evidenced in the feature document; AC-12 (README) done. Final evaluation: recall@5 97.5%, valid citations 100%, correct abstention 5/5.
+
+**How to test**
+
+```bash
+cp .env.example .env   # add NAN_API_KEY, set RERANK_THRESHOLD=0.85
+docker compose up -d --wait
+curl localhost:8001/health
+# then ingest the statute and open localhost:8080
+```
+
+**Review status:** per-slice native reviews: two `approved` with burned authority, one critical finding refuted, `medium` slices deferred to this closure; 4R closure review documented above. CI green on the branch.
 
 ## Log
 
