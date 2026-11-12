@@ -69,6 +69,25 @@ export interface RevisionResponse {
   chunks: ScoredChunk[];
 }
 
+export type FeedbackVote = 1 | -1;
+
+export interface FeedbackRequest {
+  pregunta: string;
+  respuesta: string;
+  citas: Citation[];
+  modelo: string;
+  voto: FeedbackVote;
+  comentario: string | null;
+}
+
+export interface FeedbackResponse {
+  id: number;
+  voto: number;
+  actualizado: boolean;
+  creada_en: string;
+  actualizada_en: string;
+}
+
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
@@ -201,6 +220,17 @@ function isHealthStatus(payload: unknown): payload is HealthStatus {
   return isRecord(payload) && isString(payload.status);
 }
 
+function isFeedbackResponse(payload: unknown): payload is FeedbackResponse {
+  return (
+    isRecord(payload) &&
+    typeof payload.id === "number" &&
+    typeof payload.voto === "number" &&
+    typeof payload.actualizado === "boolean" &&
+    isString(payload.creada_en) &&
+    isString(payload.actualizada_en)
+  );
+}
+
 function isTypedErrorEnvelope(
   payload: unknown,
 ): payload is { error: { code: string; message: string } } {
@@ -246,7 +276,7 @@ async function fetchJson(url: string, init?: RequestInit): Promise<unknown> {
 
 async function postJson<T>(
   path: string,
-  body: Record<string, string>,
+  body: Record<string, unknown>,
   validate: (payload: unknown) => payload is T,
   invalidMessage: string,
 ): Promise<T> {
@@ -288,6 +318,15 @@ export async function postRevision(clausula: string): Promise<RevisionResponse> 
     { clausula },
     isRevisionResponse,
     "Respuesta de revisión con formato inesperado.",
+  );
+}
+
+export async function postFeedback(request: FeedbackRequest): Promise<FeedbackResponse> {
+  return postJson(
+    "/feedback",
+    { ...request },
+    isFeedbackResponse,
+    "Respuesta de feedback con formato inesperado.",
   );
 }
 

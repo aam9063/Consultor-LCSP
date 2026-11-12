@@ -4,12 +4,26 @@
 row per retrieval chunk. `tsv` is a generated column so the Spanish
 full-text vector is maintained by Postgres itself, and the unique index on
 (`fuente_id`, `articulo`, `apartado`) makes re-ingestion idempotent (S9).
+
+`feedback` stores one self-contained row per user vote (S8): the fingerprint
+of `pregunta + respuesta` is the idempotency key, so re-evaluating the same
+answer updates the row instead of accumulating duplicates.
 """
 
 from datetime import date, datetime
+from typing import Any
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import Computed, ForeignKey, Index, String, Text, text
+from sqlalchemy import (
+    CheckConstraint,
+    Computed,
+    ForeignKey,
+    Index,
+    SmallInteger,
+    String,
+    Text,
+    text,
+)
 from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP, TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -56,3 +70,29 @@ class Chunk(Base):
         TSVECTOR, Computed("to_tsvector('spanish_unaccent'::regconfig, texto)", persisted=True)
     )
     embedding: Mapped[Vector | None] = mapped_column(Vector(4096))
+
+
+class Feedback(Base):
+    """One stored user vote (S8, S1-S3): self-contained, no session or user.
+
+    `huella` is the idempotency key (sha256 hex of `pregunta + respuesta`):
+    re-evaluating the same answer updates this row instead of adding one.
+    """
+
+    __tablename__ = "feedback"
+    __table_args__ = (CheckConstraint("voto IN (1, -1)", name="ck_feedback_voto"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    huella: Mapped[str] = mapped_column(String(64), unique=True)
+    pregunta: Mapped[str] = mapped_column(Text)
+    respuesta: Mapped[str] = mapped_column(Text)
+    citas: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)
+    modelo: Mapped[str] = mapped_column(String(200))
+    voto: Mapped[int] = mapped_column(SmallInteger)
+    comentario: Mapped[str | None] = mapped_column(Text)
+    creada_en: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), server_default=text("now()")
+    )
+    actualizada_en: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), server_default=text("now()")
+    )
