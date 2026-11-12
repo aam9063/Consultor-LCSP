@@ -7,6 +7,10 @@ from app.config import get_settings
 
 pytestmark = pytest.mark.integration
 
+
+# ---------------------------------------------------------------------------
+# Step 1 — resolve and guard the dedicated test database.
+# ---------------------------------------------------------------------------
 # Integration tests truncate the corpus tables to keep retrieval deterministic.
 # If they run against the working database, every `pytest tests/integration`
 # destroys the ingested statute and the embeddings already paid for, so they
@@ -34,6 +38,9 @@ if _TEST_DATABASE_URL == _WORKING_DATABASE_URL:
         returncode=2,
     )
 
+# ---------------------------------------------------------------------------
+# Step 2 — point the application at the test database.
+# ---------------------------------------------------------------------------
 # The environment wins over the local environment file, which is exactly what
 # the application settings already do, so pointing DATABASE_URL at the test
 # database is enough for every module that builds an engine later.

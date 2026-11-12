@@ -59,12 +59,23 @@ jobs:
           uv run python - <<'PY'
           import asyncio
           import os
+          import re
 
           from sqlalchemy import text
           from sqlalchemy.ext.asyncio import create_async_engine
 
           admin_url, database = os.environ["DATABASE_URL_TEST"].rsplit("/", 1)
           target = database.split("?", 1)[0]
+
+          # The name is interpolated into a quoted CREATE DATABASE identifier,
+          # and Postgres accepts almost anything inside double quotes (even
+          # `;`): a malformed URL would silently create a garbage database
+          # instead of failing. Only plain identifiers are allowed through.
+          if not re.fullmatch(r"[A-Za-z0-9_]+", target):
+              raise SystemExit(
+                  f"Refusing to create a test database with the unsafe name {target!r}: "
+                  "DATABASE_URL_TEST must end in a plain database name."
+              )
 
           async def main() -> None:
               engine = create_async_engine(admin_url + "/lcsp", isolation_level="AUTOCOMMIT")
