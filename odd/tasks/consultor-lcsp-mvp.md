@@ -94,7 +94,7 @@ Otras leyes o normativa (solo LCSP consolidada); descarga automática del BOE en
 | CL-03 | Ingesta idempotente con embeddings y `tsvector` | S1, S2, S9 | `9d03d4a`, `b39c8c6` | hecho |
 | CL-04 | Recuperación híbrida, RRF, rerank y búsqueda por número | S2, S10, S11 | `032859d`, `6a68022` | hecho |
 | CL-05 | Generación con citas, validación y abstención | S3, S12, S13 | `0e8f1ff`, `19ee890` | hecho |
-| CL-06 | Revisor de cláusulas | S4, S14 | pendiente | — |
+| CL-06 | Revisor de cláusulas | S4, S14 | `76bad65`, `2968a8b` | hecho |
 | CL-07 | Frontend: consulta con chips y panel, revisor, historial | S5, S15 | pendiente | — |
 | CL-08 | Set de 25 preguntas y evaluación | S6, S16 | pendiente | — |
 | CL-09 | README y cierre de la Fase 1 | S18 | pendiente | — |
@@ -253,11 +253,36 @@ Slice de 2 commits, delegado y verificado a escala real.
 - Docker: `docker compose build` con las dos imágenes.
 - Incidente previo (run `43222982952`): `astral-sh/setup-uv@v10` no existe como ref; el action solo mantiene mayores flotantes hasta `v7`. Corregido fijando `@v10.3.3` en `32cb185`.
 
+### CL-06 · Revisor de cláusulas
+
+Slice de 2 commits, delegado y verificado a escala real.
+
+- `76bad65` feat(clauses): dominio puro con los tres `tipo` de la spec, citas parseadas con el **mismo** parser que las respuestas (sin duplicar lógica) y motivos de rechazo estables (`tipo_no_valido`, `sin_articulos_citados`, `articulo_no_recuperado`, `cita_no_encontrada`, `aviso_mal_formado`). Cláusula de más de 800 palabras → error tipado.
+- `2968a8b` feat(clauses): `review_clause` + `POST /revisiones`.
+
+**TDD observado** (RED del worker): `ModuleNotFoundError: app.domain.clauses` y 404 en lugar de 422 en los tests de API. GREEN: 112 unitarios, 26 de integración, `mypy --strict` limpio en 56 ficheros.
+
+**Verificación del orquestador con los 580 chunks reales** (cláusula con garantía del 3%, que choca con el 5% del art. 107)
+
+- AC-08: aviso `posible_incumplimiento` citando `[art. 306]` — artículo efectivamente recuperado — valida con 1 llamada y 0 descartes.
+- Cita inventada `[art. 999]` → **2** llamadas (un solo reintento) y aviso descartado con motivo `articulo_no_recuperado`; nunca se muestra una cita inexistente.
+- Sin base (rerank 0,02 < 0,35) → `sin_observaciones=True`, texto exacto `sin observaciones fundadas`, `model_called=False` y 0 llamadas.
+- `POST /revisiones`: 200 con `avisos`/`avisos_invalidos`/`chunks`; 801 palabras → 422 `clausula_demasiado_larga`; sin cláusula → 422 `clausula_ausente`.
+- Observación del caso real: para esa cláusula el recuperador devolvió `306, 266, DA23, 268, 347, DA3` y **no** el 107. Con embeddings reales (CL-08) hay que comprobar que el artículo correcto entra en el top-6; con el fake la similitud no es semántica.
+
+**Decisiones del worker aceptadas**
+
+- Cláusula ausente devuelve 422 tipado `clausula_ausente` en el propio endpoint, en vez de un handler global que habría cambiado el sobre de 422 de `/consultas`.
+- `chunks` se exponen también en el camino sin base, para que la UI pueda explicar por qué no hay observaciones.
+- `articulos_citados` viaja como `[art. X]`/`[art. X.Y]` (formato exigido en el prompt) y se parsea con `parse_citations`.
+
+**RDD:** `assess --base-ref b039278 --committed-only` → **`medium`** (1.049 líneas), diferido al cierre del slice.
+
 ## Progreso y siguiente paso
 
-- Progreso: 5/9 tareas implementadas y verificadas (CL-01 RDD cerrado por abandono autorizado; CL-02 a CL-05 con RDD `medium` diferido al cierre del slice).
+- Progreso: 6/9 tareas implementadas y verificadas (CL-01 RDD cerrado por abandono autorizado; CL-02 a CL-06 con RDD `medium` diferido al cierre del slice).
 - RDD pendiente: (a) aplicar la corrección de `R4-async-singleton-race` (cerrojo async en la inicialización del engine, con test), (b) decidir si los dos mockups entran en la candidata, (c) revisar los slices `web` e `infra`.
-- Siguiente paso: CL-06 (revisor de cláusulas).
+- Siguiente paso: CL-07 (frontend: consulta con chips y panel, revisor, historial).
 - Pendiente de decisión: endurecer `NanLLMClient` para errores de conexión/timeout antes de la carga real de 37 lotes.
 
 ## Log
