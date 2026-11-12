@@ -24,7 +24,9 @@ describe("App shell", () => {
     renderApp();
 
     expect(screen.getByRole("heading", { name: /consultor lcsp/i })).toBeInTheDocument();
-    expect(screen.getByText(/no es asesoramiento jurídico/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/no es asesoramiento jurídico/i).length).toBeGreaterThan(
+      0,
+    );
   });
 
   it("reports that the API is unreachable when the health check fails", async () => {
