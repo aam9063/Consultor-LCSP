@@ -4,6 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from app.adapters.llm import LLMError, MissingAPIKeyError
+from app.api.answers import router as answers_router
 from app.api.health import router as health_router
 from app.api.retrieval import router as retrieval_router
 
@@ -31,6 +32,7 @@ def create_app() -> FastAPI:
     app.add_exception_handler(LLMError, _llm_error)
     app.include_router(health_router)
     app.include_router(retrieval_router)
+    app.include_router(answers_router)
     return app
 
 

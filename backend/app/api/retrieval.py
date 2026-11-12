@@ -58,7 +58,7 @@ class ErrorResponse(BaseModel):
     error: ErrorBody
 
 
-def _scored_body(chunk: RetrievedChunk) -> ScoredChunkBody:
+def scored_body(chunk: RetrievedChunk) -> ScoredChunkBody:
     return ScoredChunkBody(
         id=chunk.id,
         articulo=chunk.articulo,
@@ -78,7 +78,7 @@ async def buscar(q: str, session: SessionDep, llm: LLMDep) -> SearchResponse:
     return SearchResponse(
         query=result.query,
         best_score=result.best_score,
-        results=[_scored_body(chunk) for chunk in result.chunks],
+        results=[scored_body(chunk) for chunk in result.chunks],
     )
 
 
