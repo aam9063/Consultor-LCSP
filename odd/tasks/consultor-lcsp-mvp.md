@@ -95,7 +95,7 @@ Otras leyes o normativa (solo LCSP consolidada); descarga automática del BOE en
 | CL-04 | Recuperación híbrida, RRF, rerank y búsqueda por número | S2, S10, S11 | `032859d`, `6a68022` | hecho |
 | CL-05 | Generación con citas, validación y abstención | S3, S12, S13 | `0e8f1ff`, `19ee890` | hecho |
 | CL-06 | Revisor de cláusulas | S4, S14 | `76bad65`, `2968a8b` | hecho |
-| CL-07 | Frontend: consulta con chips y panel, revisor, historial | S5, S15 | pendiente | — |
+| CL-07 | Frontend: consulta con chips y panel, revisor, historial | S5, S15 | pendiente | diseño: `frontend/docs/mock/*.dc.html` |
 | CL-08 | Set de 25 preguntas y evaluación | S6, S16 | pendiente | — |
 | CL-09 | README y cierre de la Fase 1 | S18 | pendiente | — |
 
