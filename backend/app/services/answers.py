@@ -119,6 +119,17 @@ async def answer_question(
             )
         report = validate_answer(respuesta, index)
 
+    if not report.valid:
+        # The model could not back a single claim even after the retry. Shipping
+        # an answer with no validated citation is worse than abstaining: for a
+        # legal tool an unsupported answer is the failure mode we exist to avoid.
+        logger.info(
+            "answer abstained after unbacked citations question_chars=%d invalid_citations=%d",
+            len(question),
+            len(report.invalid),
+        )
+        return _abstention(ABSTENTION_MESSAGE, settings.chat_model, _unbacked_motivo(report))
+
     unsupported = tuple(claim.text for claim in report.unsupported_claims)
     logger.info(
         "answer generated question_chars=%d valid_citations=%d invalid_citations=%d "
@@ -191,6 +202,14 @@ def _validation_feedback(report: CitationReport) -> str:
         f"Error de validación: las citas {labels} no corresponden a artículos del "
         "contexto recuperado. Reescribe la respuesta citando solo artículos presentes "
         "en el contexto, o responde abstencion=true con motivo_abstencion."
+    )
+
+
+def _unbacked_motivo(report: CitationReport) -> str:
+    labels = ", ".join(citation.label() for citation in report.invalid) or "ninguna"
+    return (
+        "El modelo no logró respaldar ninguna afirmación con los artículos recuperados "
+        f"(citas descartadas: {labels})."
     )
 
 

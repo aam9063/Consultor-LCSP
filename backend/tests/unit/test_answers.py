@@ -111,7 +111,7 @@ async def test_a_best_score_equal_to_the_threshold_does_not_abstain(
 # --- AC-06: validation, exactly one retry, unsupported marking ---------------
 
 
-async def test_unbacked_citation_is_retried_once_and_then_marked_unsupported(
+async def test_answering_without_any_backed_citation_abstains_after_one_retry(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     bad = _payload("La garantía es del 5 por 100 [art. 999].")
@@ -121,11 +121,13 @@ async def test_unbacked_citation_is_retried_once_and_then_marked_unsupported(
 
     assert llm.generation_calls == 2, "exactly one retry, no more"
     assert "art. 999" in llm.generation_requests[1]["user"], "the retry carries the feedback"
-    assert result.respuesta == "La garantía es del 5 por 100 [art. 999].", "the answer is kept"
-    assert result.warning is not None and "art. 999" in result.warning
-    assert result.unsupported_claims == ("La garantía es del 5 por 100 [art. 999].",)
+    # An answer with no backed citation is worse than no answer for a legal tool.
+    assert result.abstencion is True
+    assert result.respuesta == "No encuentro base en la LCSP para responder esto"
     assert result.citas == ()
-    assert result.chunks == tuple(_retrieval([_chunk()]).chunks)
+    assert result.unsupported_claims == ()
+    assert result.motivo_abstencion is not None
+    assert "art. 999" in result.motivo_abstencion
 
 
 async def test_the_retry_can_fix_the_citation(monkeypatch: pytest.MonkeyPatch) -> None:
