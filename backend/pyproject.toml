@@ -57,6 +57,9 @@ ignore_errors = true
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests/unit"]
-markers = ["integration: needs a running Postgres with pgvector"]
+markers = [
+  "integration: needs a running Postgres with pgvector",
+  "data: reads the real BOE XML under data/; run explicitly with pytest tests/data (never by default, never in CI)",
+]
 addopts = "-q"
 asyncio_default_fixture_loop_scope = "function"
