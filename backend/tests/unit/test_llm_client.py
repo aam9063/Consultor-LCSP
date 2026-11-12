@@ -19,6 +19,7 @@ from app.adapters.llm import (
     LLMRetriesExhaustedError,
     MissingAPIKeyError,
     NanLLMClient,
+    RerankResponseError,
 )
 from app.config import Settings
 
@@ -68,6 +69,25 @@ class ScriptedTransport:
     async def create(self, *, model: str, input: list[str]) -> Any:  # noqa: A002, ARG002
         self.calls.append(list(input))
         outcome = self.script.pop(0) if self.script else _response([_vector_for(t) for t in input])
+        if isinstance(outcome, int):
+            raise _status_error(outcome)
+        return outcome
+
+
+@dataclass
+class RerankTransport:
+    """`client.post` stub for the `/rerank` endpoint, scripted like above.
+
+    An int outcome raises that HTTP status; any other outcome is returned
+    as the parsed JSON body. Every call's path and body are recorded.
+    """
+
+    script: list[Any]
+    calls: list[dict[str, Any]] = field(default_factory=list)
+
+    async def post(self, path: str, *, cast_to: Any, body: Any = None) -> Any:  # noqa: ARG002
+        self.calls.append({"path": path, "body": body})
+        outcome = self.script.pop(0) if self.script else {"results": []}
         if isinstance(outcome, int):
             raise _status_error(outcome)
         return outcome
@@ -171,3 +191,108 @@ def test_missing_api_key_raises_a_typed_error() -> None:
 
     with pytest.raises(MissingAPIKeyError, match="NAN_API_KEY"):
         NanLLMClient(settings)
+
+
+# --- CL-04 / S2: rerank on the port -----------------------------------------
+
+
+def _rerank_response(results: list[dict[str, Any]]) -> dict[str, Any]:
+    return {"results": results}
+
+
+async def test_rerank_rebuilds_scores_in_input_order() -> None:
+    # The provider answers sorted by score descending; the adapter must not
+    # trust that order and must align one score per input document.
+    transport = RerankTransport(
+        script=[
+            _rerank_response(
+                [
+                    {"index": 2, "relevance_score": 0.9},
+                    {"index": 0, "relevance_score": 0.4},
+                    {"index": 1, "relevance_score": 0.7},
+                ]
+            )
+        ]
+    )
+    client = NanLLMClient(_settings(), client=transport, sleep=_fake_sleep)
+
+    scores = await client.rerank("plazos", ["d1", "d2", "d3"])
+
+    assert scores == [0.4, 0.7, 0.9]
+
+
+async def test_rerank_sends_model_query_and_documents_without_the_key() -> None:
+    transport = RerankTransport(script=[_rerank_response([{"index": 0, "relevance_score": 0.5}])])
+    client = NanLLMClient(_settings(), client=transport, sleep=_fake_sleep)
+
+    await client.rerank("plazo", ["documento"])
+
+    assert transport.calls[0]["path"] == "/rerank"
+    assert transport.calls[0]["body"] == {
+        "model": "rerank",
+        "query": "plazo",
+        "documents": ["documento"],
+    }
+
+
+async def test_rerank_retries_429_with_backoff_and_succeeds() -> None:
+    transport = RerankTransport(
+        script=[429, _rerank_response([{"index": 0, "relevance_score": 0.6}])]
+    )
+    delays: list[float] = []
+
+    async def recording_sleep(seconds: float) -> None:
+        delays.append(seconds)
+
+    client = NanLLMClient(_settings(), client=transport, sleep=recording_sleep)
+
+    scores = await client.rerank("q", ["d"])
+
+    assert scores == [0.6]
+    assert len(transport.calls) == 2
+    assert len(delays) == 1
+    assert 0 < delays[0] <= 20.0
+
+
+async def test_rerank_persistent_429_raises_a_typed_error_after_bounded_attempts() -> None:
+    transport = RerankTransport(script=[429, 429, 429, 429, 429])
+    client = NanLLMClient(_settings(), client=transport, sleep=_fake_sleep)
+
+    with pytest.raises(LLMRetriesExhaustedError):
+        await client.rerank("q", ["d"])
+
+    assert len(transport.calls) == 5
+
+
+@pytest.mark.parametrize(
+    "results",
+    [
+        # duplicated index
+        [{"index": 0, "relevance_score": 0.5}, {"index": 0, "relevance_score": 0.6}],
+        # out of range and negative indices
+        [{"index": 3, "relevance_score": 0.5}],
+        [{"index": -1, "relevance_score": 0.5}],
+        # missing indices (a gap)
+        [{"index": 0, "relevance_score": 0.5}, {"index": 2, "relevance_score": 0.1}],
+        # everything missing
+        [],
+        # relevance_score absent
+        [{"index": 0}],
+    ],
+)
+async def test_rerank_rejects_malformed_results_with_a_typed_error(
+    results: list[dict[str, Any]],
+) -> None:
+    transport = RerankTransport(script=[_rerank_response(results)])
+    client = NanLLMClient(_settings(), client=transport, sleep=_fake_sleep)
+
+    with pytest.raises(RerankResponseError):
+        await client.rerank("q", ["a", "b", "c"])
+
+
+async def test_rerank_with_no_documents_makes_no_call() -> None:
+    transport = RerankTransport(script=[])
+    client = NanLLMClient(_settings(), client=transport, sleep=_fake_sleep)
+
+    assert await client.rerank("q", []) == []
+    assert transport.calls == []

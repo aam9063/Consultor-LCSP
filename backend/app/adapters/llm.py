@@ -45,11 +45,22 @@ class EmbeddingDimensionError(LLMError):
     """An embedding vector does not have the configured number of components."""
 
 
+class RerankResponseError(LLMError):
+    """The rerank response cannot be aligned to the input documents."""
+
+
 class LLMClient(Protocol):
     """Port for LLM providers; services must depend on this, not on NaN."""
 
     async def embed(self, texts: list[str]) -> list[list[float]]:
         """Embed `texts`, preserving order. Raises `LLMError` subclasses."""
+        ...
+
+    async def rerank(self, query: str, documents: list[str]) -> list[float]:
+        """Score `documents` against `query`, one score per document in input order.
+
+        Raises `LLMError` subclasses.
+        """
         ...
 
 
@@ -60,6 +71,16 @@ class _EmbeddingsTransport(Protocol):
     def embeddings(self) -> Any: ...
 
 
+class _RerankTransport(Protocol):
+    """The generic `POST` slice of the OpenAI SDK used by `rerank`.
+
+    The SDK has no rerank method, so the adapter calls the provider's
+    `/rerank` endpoint through the SDK's generic `client.post(...)`.
+    """
+
+    async def post(self, path: str, *, cast_to: Any, body: Any = None) -> Any: ...
+
+
 class NanLLMClient:
     """Official `openai` SDK client against the NaN Builders API."""
 
@@ -67,12 +88,13 @@ class NanLLMClient:
         self,
         settings: Settings | None = None,
         *,
-        client: _EmbeddingsTransport | None = None,
+        client: _EmbeddingsTransport | _RerankTransport | None = None,
         sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
         rng: random.Random | None = None,
     ) -> None:
         resolved = settings if settings is not None else get_settings()
         self._model = resolved.embedding_model
+        self._rerank_model = resolved.rerank_model
         self._batch_size = resolved.embedding_batch_size
         self._dimensions = resolved.embedding_dimensions
         self._sleep = sleep
@@ -142,9 +164,54 @@ class NanLLMClient:
         return [list(item.embedding) for item in response.data]
 
     async def _request_with_retry(self, batch: list[str]) -> Any:
+        return await self._send_with_retry(
+            lambda: self._client.embeddings.create(model=self._model, input=batch),
+            operation="embedding",
+            model=self._model,
+        )
+
+    async def rerank(self, query: str, documents: list[str]) -> list[float]:
+        """Score documents against `query`; one score per document, input order.
+
+        The provider answers `{"results": [{"index", "relevance_score"}, ...]}`
+        sorted by score descending, but neither that ordering nor the
+        completeness of `results` is trusted: the adapter validates every
+        index and rebuilds the list aligned to the input order. Document
+        text and the API key are never logged.
+        """
+        if not documents:
+            return []
+        started = time.perf_counter()
+        payload: dict[str, Any] = {
+            "model": self._rerank_model,
+            "query": query,
+            "documents": documents,
+        }
+        response = await self._send_with_retry(
+            lambda: self._client.post("/rerank", cast_to=object, body=payload),
+            operation="rerank",
+            model=self._rerank_model,
+        )
+        scores = _aligned_rerank_scores(response, len(documents))
+        logger.info(
+            "rerank model=%s documents=%d latency_s=%.3f",
+            self._rerank_model,
+            len(documents),
+            time.perf_counter() - started,
+        )
+        return scores
+
+    async def _send_with_retry(
+        self, send: Callable[[], Awaitable[Any]], *, operation: str, model: str
+    ) -> Any:
+        """Run one provider request with bounded retries on 429/5xx.
+
+        Shared by embeddings and rerank: exponential backoff with jitter,
+        at most `_MAX_ATTEMPTS` attempts, then a typed error.
+        """
         for attempt in range(1, _MAX_ATTEMPTS + 1):
             try:
-                return await self._client.embeddings.create(model=self._model, input=batch)
+                return await send()
             except APIStatusError as error:
                 status = error.status_code
                 retryable = status == 429 or (status is not None and status >= 500)
@@ -152,17 +219,17 @@ class NanLLMClient:
                     raise
                 if attempt == _MAX_ATTEMPTS:
                     raise LLMRetriesExhaustedError(
-                        f"embedding request failed after {attempt} attempts "
-                        f"(last status={status}, model={self._model})"
+                        f"{operation} request failed after {attempt} attempts "
+                        f"(last status={status}, model={model})"
                     ) from error
                 delay = self._backoff_delay(attempt)
                 logger.warning(
-                    "embedding request retryable failure attempt=%d status=%s "
-                    "retry_in_s=%.2f model=%s",
+                    "%s request retryable failure attempt=%d status=%s retry_in_s=%.2f model=%s",
+                    operation,
                     attempt,
                     status,
                     delay,
-                    self._model,
+                    model,
                 )
                 await self._sleep(delay)
         raise LLMRetriesExhaustedError("unreachable retry loop end")  # pragma: no cover
@@ -172,3 +239,32 @@ class NanLLMClient:
         jitter_factor: float = 0.5 + self._rng.random()
         # Jitter spreads retries over [0.5x, 1.5x] of the exponential slot.
         return exponential * jitter_factor
+
+
+def _aligned_rerank_scores(response: Any, document_count: int) -> list[float]:
+    """Validate the provider's rerank results and rebuild them in input order."""
+    if not isinstance(response, dict) or not isinstance(response.get("results"), list):
+        raise RerankResponseError("rerank response does not contain a 'results' list")
+    scores = [0.0] * document_count
+    seen: set[int] = set()
+    for entry in response["results"]:
+        index = entry.get("index") if isinstance(entry, dict) else None
+        score = entry.get("relevance_score") if isinstance(entry, dict) else None
+        if not isinstance(index, int) or isinstance(index, bool):
+            raise RerankResponseError(f"rerank result has a non-integer index: {index!r}")
+        if not 0 <= index < document_count:
+            raise RerankResponseError(
+                f"rerank result index {index} is out of range for {document_count} documents"
+            )
+        if index in seen:
+            raise RerankResponseError(f"rerank response repeats index {index}")
+        if not isinstance(score, int | float) or isinstance(score, bool):
+            raise RerankResponseError(
+                f"rerank result for index {index} has no numeric relevance_score"
+            )
+        seen.add(index)
+        scores[index] = float(score)
+    missing = [index for index in range(document_count) if index not in seen]
+    if missing:
+        raise RerankResponseError(f"rerank response is missing results for indices {missing}")
+    return scores
