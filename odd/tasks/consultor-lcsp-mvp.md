@@ -101,15 +101,63 @@ Otras leyes o normativa (solo LCSP consolidada); descarga automática del BOE en
 
 ## Evidencias de verificación
 
-Se rellena por tarea: test escrito, RED, GREEN, checks de calidad, hash del commit, nivel de RDD y resultado.
+### CL-01 · Esqueleto, Compose con pgvector, `/health`, CI mínimo
+
+**Slice (bootstrap).** 5 commits en `feat/cl-01-skeleton`, 2.411 líneas autoradas sin lockfiles. El slice excede la guía de ~400 líneas porque es el andamiaje base del monorepo; los slices siguientes vuelven a la guía.
+
+- `2084cfa` feat(api): health endpoint, settings y migración pgvector
+- `aaade50` chore(deps): lockfile backend
+- `b0477cb` feat(web): shell Vite + Tailwind + estado de API
+- `9be8ab0` chore(deps): lockfile frontend
+- `029f413` feat(infra): Compose y CI
+
+**TDD (RED → GREEN observados)**
+
+| Regla | RED | GREEN |
+| --- | --- | --- |
+| `GET /health` → 200 `{"status":"ok"}` | `assert 404 == 200` | 1 passed |
+| Defaults de configuración + lectura de entorno | `ModuleNotFoundError: app.config` | 3 passed |
+| Shell de la UI: título, aviso legal, API caída | módulo `src/app/App` inexistente | 2 passed |
+| Extensión `vector` instalada (integración) | `NoResultFound` en `pg_extension` | pass tras `alembic upgrade head` |
+
+**Checks ejecutados** (todos en verde)
+
+- `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy --strict app tests`
+- `uv run pytest` (3) y `uv run pytest tests/integration` (1) contra Postgres 18 + pgvector local
+- `pnpm lint`, `pnpm typecheck`, `pnpm vitest run` (2), `pnpm build`, `pnpm format:check`
+- `docker compose config`; `docker compose build`; `docker compose up -d --wait` → db/api/web `healthy`; `GET :8001/health` → 200; `GET :8080/` → 200; `GET :8080/api/health` → 200
+- `actionlint` (imagen `rhysd/actionlint`) sobre `.github/workflows/ci.yml` sin errores
+
+**Defectos encontrados y corregidos durante la verificación**
+
+- Postgres 18 cambia el punto de montaje: `pgdata:/var/lib/postgresql` (el contenedor salía con código 1).
+- `wget http://localhost/` fallaba dentro de nginx (IPv6): healthcheck a `127.0.0.1` y `listen [::]:80`.
+
+**Desviaciones justificadas**
+
+- TypeScript fijado en `6.0.3`: `typescript-eslint` no soporta TS 7.0 (error explícito del plugin).
+- Puertos de host `5433` (db), `8001` (api) y `8080` (web) porque Radar de Pliegos ocupa 5432/8000/5173 en esta máquina.
+- Job e2e (Playwright) se añade en CL-07, cuando exista la suite.
+- `.env.example`: **no se pudo crear** (política de rutas sensibles del harness bloquea el fichero). Compose funciona con valores por defecto; AC-01 pide explícitamente el fichero. Pendiente de decisión.
+
+**RDD**
+
+- `gentle-ai review assess --base-ref 2225e7b --committed-only` → `high` (`process_boundary` en `backend/entrypoint.sh`, `shell_source` en `.github/workflows/ci.yml`).
+- Revisión del candidato completo (52 ficheros, 5.106 líneas): **stop nativo** `lens_context_budget_exceeded`; por eso se dividió en 5 commits y se revisa por slice.
+- Slice API (`2225e7b..2084cfa`, 565 líneas, lentes `risk` + `resilience`, lineage `review-3d828745be58ead1`): 2 revisores + refutador ejecutados. **1 hallazgo severo corroborado**: `R4-async-singleton-race` (singletons `_engine`/`_session_factory` inicializados lazy sin cerrojo → carrera que puede crear dos engines). Estado nativo: `correction_required`.
+- El `STATUS` de esa lineage pide además una decisión de *intended-untracked* sobre dos mockups que no generé yo: `frontend/docs/mock/LcspConsulta.dc.html` y `frontend/docs/mock/LcspRevisor.dc.html`.
+- Slices `web` (`aaade50..b0477cb`) e `infra` (`9be8ab0..029f413`) sin revisar todavía: la authority del slice API sigue abierta en `correction_required`.
 
 ## Progreso y siguiente paso
 
-- Progreso: 0/9 tareas. Feature document creado. Bloqueo de arranque: bootstrap de Git (repo sin commits, sin `dev`, remoto vacío) — decisión pendiente de Albert.
-- Siguiente paso: CL-01 en cuanto se resuelva la rama base.
+- Progreso: 1/9 tareas implementada y verificada (CL-01); RDD abierto con una corrección acotada pendiente.
+- RDD pendiente: (a) aplicar la corrección de `R4-async-singleton-race` (cerrojo async en la inicialización del engine, con test), (b) decidir si los dos mockups entran en la candidata, (c) revisar los slices `web` e `infra`.
+- Siguiente paso: arrancar CL-02 (parser de la LCSP) en cuanto se cierre la revisión de CL-01.
 
 ## Log
 
 - **L1 (solicitud original de Albert, literal):** "Lee el BRIEF.md y el AGENTS.md y aunque en el brief ponga que este proyecto se va a empezar si se acaba primero el de radar de pliegos, no va a ser asi, vas a hacerlo a la vez que se hace el otro"
 - **L2 (decisión de alcance, 2026-11-12):** queda anulada la premisa del BRIEF "(Proyecto secundario: se hace solo si Radar de Pliegos tiene la Fase 1 cerrada...)" y la dependencia "Fase 2 · Extensión (solo con la Fase 1 cerrada y en verde)" en lo que respecta al calendario: Consultor LCSP Fase 1 avanza **en paralelo** con Radar de Pliegos. El resto del BRIEF (alcance, non-goals, criterios de aceptación) no cambia.
 - **L3 (hecho, 2026-11-12):** leídos `BRIEF.md` y `AGENTS.md` completos; entorno verificado: uv 0.12.10, Python 3.14.5, Node v24.22.1, pnpm 11.4.0, Docker 29.9.3, RDD on. Repo sin commits, sin ramas locales, remoto `github.com/aam9063/Consultor-LCSP` vacío.
+- **L4 (decisión de Albert, 2026-11-12):** bootstrap de Git = commit inicial en `main` (AGENTS.md, BRIEF.md, `.gitignore`), luego `dev` y trabajo en `feat/cl-01-skeleton`. Ejecutado: `2225e7b` en `main`, `dev` y `feat/cl-01-skeleton` desde ahí.
+- **L5 (hallazgo, 2026-11-12):** aparecen sin commitear `frontend/docs/mock/LcspConsulta.dc.html` y `frontend/docs/mock/LcspRevisor.dc.html` (mockups de la UI, no generados por el agente). Quedan fuera de los commits de CL-01 a la espera de decisión.
