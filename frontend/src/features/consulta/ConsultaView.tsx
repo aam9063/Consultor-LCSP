@@ -19,7 +19,12 @@ export function ConsultaView({
   onConsultaCompleted,
 }: ConsultaViewProps) {
   const [pregunta, setPregunta] = useState("");
-  const [selectedArticulo, setSelectedArticulo] = useState<string | null>(null);
+  // The selection belongs to one consulta: switching to another answer (new
+  // query or a history entry) must not keep the previous article in the panel.
+  const [selection, setSelection] = useState<{
+    consulta: ConsultaResponse | null;
+    articulo: string;
+  } | null>(null);
 
   const consulta = useMutation({
     mutationFn: postConsulta,
@@ -29,6 +34,10 @@ export function ConsultaView({
   });
 
   const shownConsulta = activeConsulta ?? consulta.data ?? null;
+  const selectedArticulo =
+    selection !== null && selection.consulta === shownConsulta
+      ? selection.articulo
+      : null;
 
   function handleSubmit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -155,7 +164,10 @@ export function ConsultaView({
                           key={segmentIndex}
                           type="button"
                           onClick={() => {
-                            setSelectedArticulo(segment.articulo);
+                            setSelection({
+                              consulta: shownConsulta,
+                              articulo: segment.articulo,
+                            });
                           }}
                           aria-label={`Ver ${segment.label}`}
                           className={`inline-flex min-h-[30px] items-center rounded-full px-2.5 align-middle text-[13px] font-semibold ${

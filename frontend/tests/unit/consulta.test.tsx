@@ -154,6 +154,46 @@ describe("ConsultaView (AC-09)", () => {
     expect(screen.queryByRole("heading", { name: "Respuesta" })).not.toBeInTheDocument();
   });
 
+  it("clears the article panel when the shown consulta changes (R3-002)", async () => {
+    installFetchStub((url) => {
+      if (url.endsWith("/articulos/107")) return { body: article107 };
+      if (url.endsWith("/articulos/108")) return { body: article108 };
+      return undefined;
+    });
+
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const otherConsulta = {
+      ...consultaResponse,
+      pregunta: "¿Cómo se constituye la garantía?",
+      citas: [{ articulo: "108", apartado: null }],
+      chunks: [chunk108],
+    };
+    const view = (consulta: typeof consultaResponse) => (
+      <QueryClientProvider client={queryClient}>
+        <ConsultaView
+          history={[]}
+          activeConsulta={consulta}
+          onSelectHistory={vi.fn()}
+          onConsultaCompleted={vi.fn()}
+        />
+      </QueryClientProvider>
+    );
+
+    const { rerender } = render(view(consultaResponse));
+    await userEvent.click(screen.getByRole("button", { name: "Ver art. 107" }));
+    expect(
+      await screen.findByRole("complementary", { name: "Texto del artículo" }),
+    ).toHaveTextContent(/texto consolidado del artículo 107/i);
+
+    rerender(view(otherConsulta));
+
+    const panel = screen.getByRole("complementary", { name: "Texto del artículo" });
+    expect(panel).not.toHaveTextContent(/texto consolidado del artículo 107/i);
+    expect(panel).toHaveTextContent(/pulsa una cita/i);
+  });
+
   it("renders the unsupported-claims warning when the answer has unbacked claims", async () => {
     installFetchStub((url) => {
       if (url.endsWith("/consultas")) {
