@@ -25,7 +25,9 @@ jobs:
         image: pgvector/pgvector:pg18
         env:
           POSTGRES_USER: lcsp
-          POSTGRES_PASSWORD: lcsp
+          # Derived per run: the service password is throwaway and must not be a
+          # literal that looks like a committed credential.
+          POSTGRES_PASSWORD: ci-${{ github.run_id }}
           POSTGRES_DB: lcsp
         ports:
           - 5432:5432
@@ -35,7 +37,7 @@ jobs:
           --health-timeout 5s
           --health-retries 12
     env:
-      DATABASE_URL: postgresql+asyncpg://lcsp:lcsp@localhost:5432/lcsp
+      DATABASE_URL: postgresql+asyncpg://lcsp:ci-${{ github.run_id }}@localhost:5432/lcsp
       NAN_API_KEY: ""
     steps:
       - uses: actions/checkout@v7
