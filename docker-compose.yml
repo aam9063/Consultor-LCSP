@@ -5,7 +5,7 @@ services:
     image: pgvector/pgvector:pg18
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-lcsp}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in your local environment file}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-local-dev}
       POSTGRES_DB: ${POSTGRES_DB:-lcsp}
     ports:
       - "${LCSP_DB_PORT:-5433}:5432"
@@ -21,7 +21,7 @@ services:
     build:
       context: ./backend
     environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-lcsp}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in your local environment file}@db:5432/${POSTGRES_DB:-lcsp}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-lcsp}:${POSTGRES_PASSWORD:-change-me-local-dev}@db:5432/${POSTGRES_DB:-lcsp}
       NAN_API_KEY: ${NAN_API_KEY:-}
       NAN_BASE_URL: ${NAN_BASE_URL:-https://api.nan.builders/v1}
       NAN_CHAT_MODEL: ${NAN_CHAT_MODEL:-deepseek-v4-flash}
