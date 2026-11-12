@@ -1,0 +1,49 @@
+# Paid evaluation with the real NaN Builders API (CL-08, S6/S16).
+# workflow_dispatch only, never on push or pull_request: it spends quota.
+# Bring up the compose database, migrate, ingest the statute downloaded
+# from the BOE open-data API, run the evaluation and upload the report.
+
+name: Evals
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  evaluate:
+    name: Evaluation (real API, NAN_API_KEY)
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql+asyncpg://lcsp:lcsp@localhost:5433/lcsp
+      NAN_API_KEY: ${{ secrets.NAN_API_KEY }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - name: Start the compose database
+        run: docker compose up -d --wait db
+      - name: Download the consolidated LCSP from the BOE open-data API
+        run: |
+          curl -fsSL -H "Accept: application/xml" \
+            "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2017-12902" \
+            -o data/lcsp/lcsp-consolidada.xml
+      - name: Sync backend dependencies
+        working-directory: backend
+        run: uv sync --frozen
+      - name: Apply migrations
+        working-directory: backend
+        run: uv run alembic upgrade head
+      - name: Ingest the statute
+        run: uv run --project backend python -m app.ingest data/lcsp/lcsp-consolidada.xml
+      - name: Run the evaluation
+        run: uv run --project backend python -m evals.run
+      - name: Upload the report
+        uses: actions/upload-artifact@v4
+        with:
+          name: evals-report
+          path: evals/results/*.md
+          retention-days: 30

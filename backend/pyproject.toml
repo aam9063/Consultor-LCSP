@@ -1,0 +1,65 @@
+[project]
+name = "consultor-lcsp-backend"
+version = "0.1.0"
+description = "Consultor LCSP API: cited answers over the Spanish Public Procurement Act (LCSP)"
+requires-python = ">=3.14"
+dependencies = [
+    "alembic>=1.18.2",
+    "asyncpg>=0.31.0",
+    "fastapi>=0.162.5",
+    "openai>=3.49.0",
+    "pgvector>=0.5.1",
+    "pydantic-settings>=2.16.2",
+    "sqlalchemy[asyncio]>=2.1.8",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "mypy>=2.4.1",
+    "pytest>=9.2.0",
+    "pytest-asyncio>=1.4.1.post1",
+    "ruff>=0.17.4",
+    "types-pyyaml>=6.0.12.20261111",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+src = ["app", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "A", "C4", "SIM", "RET", "ARG", "PTH", "RUF"]
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.mypy]
+python_version = "3.14"
+strict = true
+warn_unreachable = true
+disallow_any_generics = true
+files = ["app", "tests"]
+
+[[tool.mypy.overrides]]
+module = ["alembic.*"]
+ignore_errors = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests/unit"]
+markers = [
+  "integration: needs a running Postgres with pgvector",
+  "data: reads the real BOE XML under data/; run explicitly with pytest tests/data (never by default, never in CI)",
+]
+addopts = "-q"
+asyncio_default_fixture_loop_scope = "function"
