@@ -48,6 +48,16 @@ no cueste cuota.
 - **Qué pasó.** El backoff del fix anterior los absorbió y la ingesta terminó con 580 chunks. Primera
   evidencia en producción de que el cambio servía.
 
+### El revisor marcó un BLOCKER que no existía
+- **Cómo se detectó.** En la revisión nativa del slice: `R3-001-missing-import-nameerror`, severidad
+  BLOCKER, «falta el import de `embeddings_only_articles`, produce un `NameError` en ejecución».
+- **Comprobación.** La función está **definida en el mismo fichero** (`evals/run.py:74`) y se usa en
+  las líneas 110 y 184. `import evals.run` funciona, y el propio comando ya había corrido produciendo
+  el 80% de `hit@1` del modo embeddings, que necesita esa función.
+- **Qué se hizo.** Nada en el código: se documenta como refutado con la evidencia. El proveedor marcó
+  la causalidad como `unknown` y escaló en lugar de bloquear, que es el comportamiento correcto cuando
+  no puede decidir: deja la decisión al mantenedor en vez de inventarla.
+
 ## 4. Cómo se iteró hasta una solución válida
 
 1. `recall@5` empatado en la evaluación completa → sospecha de métrica saturada, no de sistema
