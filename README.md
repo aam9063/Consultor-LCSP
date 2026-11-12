@@ -146,8 +146,19 @@ cd frontend && pnpm install
 pnpm lint && pnpm typecheck && pnpm vitest run && pnpm build && pnpm e2e
 ```
 
-`tests/integration` needs the compose database running; `tests/data` needs the real statute in
-`data/lcsp/` and validates the parser against it.
+`tests/integration` needs the compose database running **and** a dedicated test database: the suites
+truncate the corpus tables, so running them against the working database would destroy the ingested
+statute and the embeddings already paid for. The compose stack creates `<main>_test` on first
+initialisation (re-create the volume with `docker compose down -v` if yours predates it), and the
+suites refuse to run without it:
+
+```bash
+export DATABASE_URL_TEST=postgresql+asyncpg://lcsp:lcsp@localhost:5433/lcsp_test
+cd backend && DATABASE_URL=$DATABASE_URL_TEST uv run alembic upgrade head
+uv run pytest tests/integration
+```
+
+`tests/data` needs the real statute in `data/lcsp/` and validates the parser against it.
 
 ## Known limits
 
