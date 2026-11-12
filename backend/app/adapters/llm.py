@@ -15,7 +15,7 @@ import time
 from collections.abc import Awaitable, Callable
 from typing import Any, Protocol
 
-from openai import APIStatusError, AsyncOpenAI
+from openai import APIConnectionError, APIStatusError, AsyncOpenAI
 
 from app.config import Settings, get_settings
 
@@ -266,34 +266,42 @@ class NanLLMClient:
     async def _send_with_retry(
         self, send: Callable[[], Awaitable[Any]], *, operation: str, model: str
     ) -> Any:
-        """Run one provider request with bounded retries on 429/5xx.
+        """Run one provider request with bounded retries on transient failures.
 
-        Shared by embeddings and rerank: exponential backoff with jitter,
-        at most `_MAX_ATTEMPTS` attempts, then a typed error.
+        Shared by embeddings and rerank. Transient means a 429, a 5xx, or a
+        transport failure (`APIConnectionError`, which also covers timeouts):
+        none of those are the caller's fault and any of them would otherwise
+        abort a 37-batch ingestion on the first network hiccup. Backoff is
+        exponential with jitter, attempts are bounded, and the final error is
+        typed. A non-retryable status (400, 401, 404...) propagates untouched.
         """
         for attempt in range(1, _MAX_ATTEMPTS + 1):
             try:
                 return await send()
             except APIStatusError as error:
                 status = error.status_code
-                retryable = status == 429 or (status is not None and status >= 500)
-                if not retryable:
+                if not (status == 429 or status >= 500):
                     raise
-                if attempt == _MAX_ATTEMPTS:
-                    raise LLMRetriesExhaustedError(
-                        f"{operation} request failed after {attempt} attempts "
-                        f"(last status={status}, model={model})"
-                    ) from error
-                delay = self._backoff_delay(attempt)
-                logger.warning(
-                    "%s request retryable failure attempt=%d status=%s retry_in_s=%.2f model=%s",
-                    operation,
-                    attempt,
-                    status,
-                    delay,
-                    model,
-                )
-                await self._sleep(delay)
+                failure: Exception = error
+                reason = f"status={status}"
+            except APIConnectionError as error:
+                failure = error
+                reason = "connection error"
+            if attempt == _MAX_ATTEMPTS:
+                raise LLMRetriesExhaustedError(
+                    f"{operation} request failed after {attempt} attempts "
+                    f"(last {reason}, model={model})"
+                ) from failure
+            delay = self._backoff_delay(attempt)
+            logger.warning(
+                "%s request retryable failure attempt=%d reason=%s retry_in_s=%.2f model=%s",
+                operation,
+                attempt,
+                reason,
+                delay,
+                model,
+            )
+            await self._sleep(delay)
         raise LLMRetriesExhaustedError("unreachable retry loop end")  # pragma: no cover
 
     def _backoff_delay(self, attempt: int) -> float:
