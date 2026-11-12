@@ -118,6 +118,7 @@ Subagentes: solo con motivo explícito (exploración amplia, escritores en paral
 
 **Push (siempre preguntando)**
 - **Nunca hagas `git push` sin preguntar.** Pregunta exactamente: "¿Hago push de `<rama>` a `origin`?" y espera un sí explícito para esa rama.
+- **Después de cada push, espera el run del CI.** No des una tarea por cerrada hasta ver ese run en verde: `gh run watch <run-id> --exit-status` (o `gh run list` para localizarlo). Si falla, lee `gh run view <run-id> --log-failed`, diagnostica la causa raíz, corrígela y vuelve a pushear y esperar. Un push sin run verde no es un push terminado.
 - Nunca `--force` ni `--force-with-lease`.
 - No actives los modos `YOLO`, `Super Yolo` ni `auto` de gentle-shell para saltarte esta regla: conceden push y PR por su cuenta.
 

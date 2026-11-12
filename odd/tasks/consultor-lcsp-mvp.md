@@ -243,7 +243,15 @@ Slice de 2 commits, delegado y verificado a escala real.
 - Una afirmación **sin ninguna cita** también se marca como no respaldada (la spec solo habla de citas inválidas; el criterio es más estricto y no oculta texto sin respaldo).
 - `citas` en la respuesta son solo las validadas: el chip de la UI debe apuntar a un artículo que existe. Las inventadas salen por `advertencia`/`afirmaciones_no_respaldadas`.
 
-**RDD:** `assess --base-ref 48e50d6 --committed-only` → ver más abajo.
+**RDD:** `assess --base-ref 48e50d6 --committed-only` → **`medium`** (1.179 líneas), diferido al cierre del slice.
+
+### AC-11 · CI en verde (evidencia acumulada)
+
+- Run `43223603050` sobre `feat/lcsp-mvp` (`32cb185`): **success** en los tres jobs.
+- Backend: `uv sync --frozen`, `ruff check`, `ruff format --check`, `mypy --strict` (50 ficheros), `alembic upgrade head` (aplica `0003` con la extensión `unaccent` contra el servicio pgvector) y los dos suites de pytest (unitarios + integración).
+- Frontend: `pnpm install --frozen-lockfile`, `lint`, `typecheck`, `test`, `build`.
+- Docker: `docker compose build` con las dos imágenes.
+- Incidente previo (run `43222982952`): `astral-sh/setup-uv@v10` no existe como ref; el action solo mantiene mayores flotantes hasta `v7`. Corregido fijando `@v10.3.3` en `32cb185`.
 
 ## Progreso y siguiente paso
 
