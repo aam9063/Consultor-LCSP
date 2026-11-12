@@ -2,8 +2,84 @@ import { useMutation } from "@tanstack/react-query";
 import { useState, type SyntheticEvent } from "react";
 
 import { ArticlePanel } from "../../components/ArticlePanel";
-import { ApiError, postConsulta, type ConsultaResponse } from "../../lib/api";
+import {
+  ApiError,
+  postConsulta,
+  postFeedback,
+  type ConsultaResponse,
+  type FeedbackVote,
+} from "../../lib/api";
 import { citationLabel, splitAnswer } from "../../lib/answerText";
+
+// Truthful by construction: the question *is* sent to the model provider to
+// build the answer, so the copy must never suggest otherwise.
+const VOTE_CONFIRMATION =
+  "Gracias. Tu valoración se guarda en esta instalación para mejorar el sistema.";
+const VOTE_ERROR =
+  "No se pudo guardar tu valoración. La respuesta sigue disponible; inténtalo de nuevo.";
+
+const voteButtonBase =
+  "inline-flex min-h-[36px] items-center gap-1.5 rounded-full border px-3 text-[13px] font-semibold focus-visible:ring-2 focus-visible:ring-lcsp focus-visible:ring-offset-1 focus-visible:outline-none";
+
+function voteButtonStyle(pressed: boolean): string {
+  return pressed
+    ? "bg-lcsp border-lcsp text-white"
+    : "bg-nav-active text-lcsp border-nav-active-border";
+}
+
+// The vote belongs to one consulta: switching to another answer resets the
+// controls instead of showing the previous answer's vote.
+function FeedbackControls({ consulta }: { consulta: ConsultaResponse }) {
+  const [vote, setVote] = useState<FeedbackVote | null>(null);
+  const feedback = useMutation({ mutationFn: postFeedback });
+
+  function handleVote(selected: FeedbackVote) {
+    setVote(selected);
+    feedback.mutate({
+      pregunta: consulta.pregunta,
+      respuesta: consulta.respuesta,
+      citas: consulta.citas,
+      modelo: consulta.modelo,
+      voto: selected,
+      comentario: null,
+    });
+  }
+
+  return (
+    <div className="ml-auto flex flex-col items-end gap-1">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          aria-pressed={vote === 1}
+          onClick={() => {
+            handleVote(1);
+          }}
+          className={`${voteButtonBase} ${voteButtonStyle(vote === 1)}`}
+        >
+          <span aria-hidden="true">👍</span> Me ha servido
+        </button>
+        <button
+          type="button"
+          aria-pressed={vote === -1}
+          onClick={() => {
+            handleVote(-1);
+          }}
+          className={`${voteButtonBase} ${voteButtonStyle(vote === -1)}`}
+        >
+          <span aria-hidden="true">👎</span> No me ha servido
+        </button>
+      </div>
+      {feedback.isSuccess && (
+        <p className="text-ink-muted text-[13px]">{VOTE_CONFIRMATION}</p>
+      )}
+      {feedback.isError && (
+        <p className="text-decision-nogo text-[13px]" role="alert">
+          {VOTE_ERROR}
+        </p>
+      )}
+    </div>
+  );
+}
 
 interface ConsultaViewProps {
   history: ConsultaResponse[];
@@ -150,6 +226,10 @@ export function ConsultaView({
                 ✓ {shownConsulta.citas.length} citas validadas
               </span>
               <span className="text-ink-muted text-[13px]">{shownConsulta.modelo}</span>
+              <FeedbackControls
+                key={`${shownConsulta.pregunta}-${shownConsulta.respuesta.slice(0, 32)}`}
+                consulta={shownConsulta}
+              />
             </div>
             <div className="flex flex-col gap-3 leading-relaxed">
               {shownConsulta.respuesta

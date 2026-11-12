@@ -109,9 +109,17 @@ export function App() {
         <Route path="/revisor" element={<RevisorView />} />
       </Routes>
 
-      <footer className="text-ink-muted mx-auto max-w-[1360px] px-6 py-8 text-xs">
-        Esta herramienta no es asesoramiento jurídico. Verifica siempre el texto
-        consolidado en el BOE.
+      <footer className="text-ink-muted mx-auto flex max-w-[1360px] flex-col gap-1 px-6 py-8 text-xs">
+        <span>
+          Esta herramienta no es asesoramiento jurídico. Verifica siempre el texto
+          consolidado en el BOE.
+        </span>
+        <span data-testid="data-notice">
+          Las preguntas se procesan en la Unión Europea (NaN Builders), que declara no
+          registrar prompts ni respuestas ni entrenar modelos con tus datos. Las
+          valoraciones que envíes sí se guardan en esta instalación para ampliar el set de
+          evaluación.
+        </span>
       </footer>
     </div>
   );
