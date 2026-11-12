@@ -92,7 +92,7 @@ Otras leyes o normativa (solo LCSP consolidada); descarga automática del BOE en
 | CL-01 | Esqueleto del monorepo, Docker Compose con pgvector, `/health`, CI mínimo | S1(parcial), S7, S17 | pendiente | — |
 | CL-02 | Parser de la LCSP y modelo `chunk` | S1, S8 | `1c301ec`, `ada8854` | hecho |
 | CL-03 | Ingesta idempotente con embeddings y `tsvector` | S1, S2, S9 | `9d03d4a`, `b39c8c6` | hecho |
-| CL-04 | Recuperación híbrida, RRF, rerank y búsqueda por número | S2, S10, S11 | pendiente | — |
+| CL-04 | Recuperación híbrida, RRF, rerank y búsqueda por número | S2, S10, S11 | `032859d`, `6a68022` | hecho |
 | CL-05 | Generación con citas, validación y abstención | S3, S12, S13 | pendiente | — |
 | CL-06 | Revisor de cláusulas | S4, S14 | pendiente | — |
 | CL-07 | Frontend: consulta con chips y panel, revisor, historial | S5, S15 | pendiente | — |
@@ -198,11 +198,34 @@ Slice de 2 commits, delegado a `gentle-ai-worker` y verificado a escala real por
 - `NanLLMClient` reintenta 429/5xx pero no `APIConnectionError` ni timeouts de red: en la carga real de 37 lotes conviene decidirlo antes de CL-04.
 - El semáforo es por llamada a `embed()`, no global entre ingestas concurrentes.
 
+### CL-04 · Recuperación híbrida, RRF, rerank y búsqueda por número
+
+Slice de 2 commits, delegado y verificado a escala real.
+
+- `032859d` feat(retrieval): RRF puro y estable + extracción de número de artículo en español; servicio con búsqueda vectorial exacta (`<=>`), FTS `spanish_unaccent`, fusión RRF, rerank del top `top_k*2` y ruta directa por número. El puerto `rerank` se implementa contra `POST /rerank` (contrato verificado en la documentación de NaN: `results[{index, relevance_score}]`), **sin confiar** en el orden ni la completitud del proveedor: reconstruye el orden y falla con error tipado.
+- `6a68022` feat(api): `GET /buscar` y `GET /articulos/{numero}`, y mapeo de errores del LLM a respuestas tipadas.
+
+**TDD observado** (RED del worker): `ModuleNotFoundError` de `app.domain.ranking` y `app.services.retrieval`, `ImportError: RerankResponseError`. RED propio (corrección del orquestador): la clave ausente escapaba como excepción sin manejar.
+
+**Verificación del orquestador a escala real** (580 chunks ingeridos con el fake)
+
+- AC-04: `"¿Qué dice el artículo 107?"` → primera posición `articulo=107`, rama `direct`, URL `#a1-19`.
+- Consulta temática → `top_k=6` con `best_score` poblado (0.9057).
+- API: `/buscar` 200 con 6 resultados; `/articulos/107` 200; `/articulos/9999` 404 con cuerpo `article_not_found` tipado.
+- Gates: ruff, formato, `mypy --strict` (44 ficheros), 63 unitarios, 16 de integración, 1 de datos.
+
+**Defecto propio corregido (encontrado en la verificación)**
+
+- Sin `NAN_API_KEY`, `/buscar` devolvía un 500 con traza: un fallo previsible de configuración, prohibido por AGENTS §10. Ahora `MissingAPIKeyError` → **503 `llm_not_configured`** y el resto de `LLMError` → **502 `llm_unavailable`**, con el mismo sobre tipado que el 404. Cubierto por `tests/unit/test_api_errors.py`.
+- `hybrid_search` siempre embebe la pregunta, incluso cuando la ruta directa por número ya resuelve: una llamada extra por consulta. Anotado, no corregido.
+
+**RDD:** `assess --base-ref cabbdff --committed-only` → **`medium`** (1.145 líneas, `executable_change` en `backend/app/adapters/llm.py`), diferido al cierre del slice.
+
 ## Progreso y siguiente paso
 
-- Progreso: 3/9 tareas implementadas y verificadas (CL-01 RDD cerrado por abandono autorizado; CL-02 y CL-03 con RDD `medium` diferido al cierre del slice).
+- Progreso: 4/9 tareas implementadas y verificadas (CL-01 RDD cerrado por abandono autorizado; CL-02, CL-03 y CL-04 con RDD `medium` diferido al cierre del slice).
 - RDD pendiente: (a) aplicar la corrección de `R4-async-singleton-race` (cerrojo async en la inicialización del engine, con test), (b) decidir si los dos mockups entran en la candidata, (c) revisar los slices `web` e `infra`.
-- Siguiente paso: CL-04 (recuperación híbrida, RRF, rerank, búsqueda por número). Pendiente de decisión de Albert: cuándo se ejecuta la carga real de embeddings con `NAN_API_KEY`.
+- Siguiente paso: CL-05 (generación con citas, validación y abstención).
 - Pendiente de decisión: endurecer `NanLLMClient` para errores de conexión/timeout antes de la carga real de 37 lotes.
 
 ## Log
