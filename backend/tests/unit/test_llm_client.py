@@ -11,7 +11,7 @@ from typing import Any, cast
 
 import httpx
 import pytest
-from openai import APIStatusError
+from openai import APIConnectionError, APIStatusError
 from pydantic import SecretStr
 
 from app.adapters.llm import (
@@ -43,6 +43,11 @@ def _response(vectors: list[list[float]]) -> Any:
     return SimpleNamespace(data=data, usage=SimpleNamespace(prompt_tokens=7, total_tokens=7))
 
 
+def _connection_error() -> APIConnectionError:
+    request = httpx.Request("POST", "https://api.nan.builders/v1/embeddings")
+    return APIConnectionError(request=cast("Any", request))
+
+
 def _status_error(status_code: int) -> APIStatusError:
     request = httpx.Request("POST", "https://api.nan.builders/v1/embeddings")
     response = httpx.Response(status_code, request=request)
@@ -72,6 +77,8 @@ class ScriptedTransport:
         outcome = self.script.pop(0) if self.script else _response([_vector_for(t) for t in input])
         if isinstance(outcome, int):
             raise _status_error(outcome)
+        if isinstance(outcome, Exception):
+            raise outcome
         return outcome
 
 
@@ -123,6 +130,35 @@ async def test_embed_with_no_texts_makes_no_calls() -> None:
 
     assert await client.embed([]) == []
     assert transport.calls == []
+
+
+# --- network failures must be retried, not surface as a dead ingestion --------
+
+
+async def test_a_connection_error_is_retried_and_eventually_succeeds() -> None:
+    delays: list[float] = []
+
+    async def recording_sleep(seconds: float) -> None:
+        delays.append(seconds)
+
+    transport = ScriptedTransport(script=[_connection_error(), _connection_error()])
+    client = NanLLMClient(_settings(), client=transport, sleep=recording_sleep)
+
+    vectors = await client.embed(["t0"])
+
+    assert len(transport.calls) == 3, "two failures then the successful fallback"
+    assert len(delays) == 2, "each failed attempt backs off"
+    assert len(vectors) == 1
+
+
+async def test_a_persistent_connection_error_raises_the_typed_error() -> None:
+    transport = ScriptedTransport(script=[_connection_error() for _ in range(10)])
+    client = NanLLMClient(_settings(), client=transport, sleep=_fake_sleep)
+
+    with pytest.raises(LLMRetriesExhaustedError):
+        await client.embed(["t0"])
+
+    assert len(transport.calls) == 5, "bounded attempts, not an infinite loop"
 
 
 # --- S1: a 429 is retried with exponential backoff + jitter ------------------
