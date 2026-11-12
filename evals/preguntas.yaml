@@ -1,0 +1,134 @@
+# Set de evaluación anotado (CL-08, S6 del BRIEF / AC-10).
+# 25 entradas: 20 con base en la LCSP y 5 fuera de ella.
+# Cada número de artículo fue verificado contra data/lcsp/lcsp-consolidada.xml
+# (BOE-A-2017-12902, versión consolidada 2018-03-09).
+# Ejemplos de partida del BRIEF §5 confirmados: penalidades por demora (193),
+# clasificación en obras (77), garantía definitiva (107), contrato menor (118),
+# abierto simplificado (159), criterios de adjudicación (145),
+# ofertas anormalmente bajas (149), subcontratación (215): todos correctos.
+
+- id: P-01
+  pregunta: "¿Qué penalidades se imponen al contratista cuando incurre en demora en la ejecución del contrato?"
+  articulos_esperados: ["193", "194"]
+  respuesta_referencia: "El art. 193 fija penalidades diarias de 0,60 EUR por cada 1.000 EUR del precio (IVA excluido) y permite resolución por múltiplos del 5%; el 194 regula su imposición y la indemnización por daños y perjuicios."
+  debe_abstenerse: false
+- id: P-02
+  pregunta: "¿Cuándo se exige la clasificación empresarial a los contratistas de obras?"
+  articulos_esperados: ["77"]
+  respuesta_referencia: "El art. 77 exige clasificación a quienes aspiren a contratos de obras sujetos a regulación armonizada y permite exigirla en los no sujetos cuando su importe supere el menor de los umbrales."
+  debe_abstenerse: false
+- id: P-03
+  pregunta: "¿Qué importe tiene la garantía definitiva y sobre qué precio se calcula?"
+  articulos_esperados: ["107"]
+  respuesta_referencia: "El art. 107 fija una garantía del 5% del precio final ofertado, IVA excluido, a constituir por los licitadores con la mejor oferta."
+  debe_abstenerse: false
+- id: P-04
+  pregunta: "¿Cuáles son los límites del contrato menor?"
+  articulos_esperados: ["118"]
+  respuesta_referencia: "El art. 118 fija el contrato menor en obras por debajo de 40.000 EUR y en suministros o servicios por debajo de 15.000 EUR, con expediente reducido."
+  debe_abstenerse: false
+- id: P-05
+  pregunta: "¿Qué características tiene el procedimiento abierto simplificado?"
+  articulos_esperados: ["159"]
+  respuesta_referencia: "El art. 159 lo define como un procedimiento abierto agilizado, con recursos contra pliegos en vía administrativa, plazo más corto de presentación y sin negociación."
+  debe_abstenerse: false
+- id: P-06
+  pregunta: "¿Qué criterios pueden usarse para adjudicar un contrato?"
+  articulos_esperados: ["145"]
+  respuesta_referencia: "El art. 145 distingue criterios automáticos (precio, coste del ciclo de vida, oferta técnica más ventajosa) y juicios de valor, y prohíbe criterios no económicos ajenos al objeto."
+  debe_abstenerse: false
+- id: P-07
+  pregunta: "¿Qué ocurre cuando una oferta es anormalmente baja?"
+  articulos_esperados: ["149"]
+  respuesta_referencia: "El art. 149 obliga a pedir justificación a quien presente una oferta anormalmente baja y a excluirlo si no prueba la viabilidad de la oferta."
+  debe_abstenerse: false
+- id: P-08
+  pregunta: "¿En qué condiciones puede el contratista subcontratar partes del contrato?"
+  articulos_esperados: ["215"]
+  respuesta_referencia: "El art. 215 permite subcontratar las partes del contrato salvo prohibición del pliego, con control del órgano de contratación y límite de la parte subcontratable fijado en el pliego."
+  debe_abstenerse: false
+- id: P-09
+  pregunta: "¿A partir de qué importe los contratos de suministro están sujetos a regulación armonizada?"
+  articulos_esperados: ["21"]
+  respuesta_referencia: "El art. 21 fija el umbral de regulación armonizada para los contratos de suministro en 135.000 EUR (Administración General del Estado y organismos autónomos) y 209.000 EUR para los demás."
+  debe_abstenerse: false
+- id: P-10
+  pregunta: "¿Qué umbral aplica a los contratos de servicios sujetos a regulación armonizada?"
+  articulos_esperados: ["22"]
+  respuesta_referencia: "El art. 22 fija el umbral de regulación armonizada para los contratos de servicios en 135.000 EUR (AGE y organismos autónomos), 209.000 EUR para el resto y 750.000 EUR para los servicios sociales y otros del anexo IV."
+  debe_abstenerse: false
+- id: P-11
+  pregunta: "¿Cuándo se exige garantía provisional y en qué consiste?"
+  articulos_esperados: ["106"]
+  respuesta_referencia: "El art. 106 establece que no procede exigir garantía provisional salvo que, excepcionalmente y por interés público, se justifique motivadamente en el expediente; su importe no puede superar el 3% del presupuesto base de licitación (IVA excluido)."
+  debe_abstenerse: false
+- id: P-12
+  pregunta: "¿Qué reglas tiene la ley sobre el plazo de duración de los contratos y de ejecución de la prestación?"
+  articulos_esperados: ["29"]
+  respuesta_referencia: "El art. 29 exige fijar en el pliego el plazo de ejecución en función de la naturaleza y complejidad, con límites de 5 años para suministros y servicios y prórrogas anuales."
+  debe_abstenerse: false
+- id: P-13
+  pregunta: "¿Quiénes están prohibidos de contratar con el sector público?"
+  articulos_esperados: ["71"]
+  respuesta_referencia: "El art. 71 enumera las prohibiciones de contratar: condenados por delitos graves, concursados, incumplidores de contratos previos, con conflictos de interés y quienes incumplen obligaciones laborales o de Seguridad Social."
+  debe_abstenerse: false
+- id: P-14
+  pregunta: "¿Cómo se acredita la solvencia económica y financiera?"
+  articulos_esperados: ["87"]
+  respuesta_referencia: "El art. 87 permite acreditar la solvencia económica y financiera con cuentas anuales, declaración global sobre volumen de negocios o seguro de indemnización."
+  debe_abstenerse: false
+- id: P-15
+  pregunta: "¿Cómo se calcula el valor estimado del contrato?"
+  articulos_esperados: ["101"]
+  respuesta_referencia: "El art. 101 define el valor estimado como el importe total sin IVA que la Administración prevé gastar, incluyendo prórrogas, modificaciones previsibles y, si procede, la forma de retribución."
+  debe_abstenerse: false
+- id: P-16
+  pregunta: "¿Cuándo y cómo se formalizan los contratos?"
+  articulos_esperados: ["153"]
+  respuesta_referencia: "El art. 153 exige formalizar el contrato en documento administrativo o escritura pública dentro del plazo fijado, tras acreditar la garantía definitiva y la solvencia."
+  debe_abstenerse: false
+- id: P-17
+  pregunta: "¿En qué supuestos puede usarse el procedimiento negociado sin publicidad?"
+  articulos_esperados: ["168"]
+  respuesta_referencia: "El art. 168 recoge los supuestos de negociado sin publicidad: urgencia, contratos menores y repetitivos, prestación artística, bienes cotizados y otros casos tasados."
+  debe_abstenerse: false
+- id: P-18
+  pregunta: "¿En qué plazo debe pagarse el precio al contratista?"
+  articulos_esperados: ["198"]
+  respuesta_referencia: "El art. 198 regula el pago del precio: plazos de 30 días para reconocer la obligación y pagar, con intereses de demora automáticos si se excede."
+  debe_abstenerse: false
+- id: P-19
+  pregunta: "¿Por qué causas puede resolverse un contrato administrativo de obras?"
+  articulos_esperados: ["211"]
+  respuesta_referencia: "El art. 211 enumera las causas de resolución: incumplimiento grave, demora, imposibilidad, mutuo acuerdo, insolvencia, muerte o incapacidad del contratista, entre otras."
+  debe_abstenerse: false
+- id: P-20
+  pregunta: "¿Cómo es la recepción de las obras y qué plazo de garantía tienen?"
+  articulos_esperados: ["243"]
+  respuesta_referencia: "El art. 243 regula la recepción (plazos, provisional o definitiva) y fija el plazo de garantía de las obras en un año salvo pacto mayor."
+  debe_abstenerse: false
+- id: P-21
+  pregunta: "¿Qué tipo de IVA se aplica a una obra de reforma en una vivienda?"
+  articulos_esperados: []
+  respuesta_referencia: "Sin base en la LCSP: el IVA se regula en la Ley 37/1992 del IVA y sus normas de desarrollo."
+  debe_abstenerse: true
+- id: P-22
+  pregunta: "¿Cuántos días de vacaciones le corresponden por ley a un trabajador al año?"
+  articulos_esperados: []
+  respuesta_referencia: "Sin base en la LCSP: las vacaciones anuales las fija el Estatuto de los Trabajadores y el convenio colectivo."
+  debe_abstenerse: true
+- id: P-23
+  pregunta: "¿A partir de qué edad puede jubilarse un trabajador y con qué porcentaje de su base reguladora?"
+  articulos_esperados: []
+  respuesta_referencia: "Sin base en la LCSP: la jubilación se regula en la Ley General de la Seguridad Social."
+  debe_abstenerse: true
+- id: P-24
+  pregunta: "¿Qué obligaciones tiene una empresa para cumplir el RGPD en el tratamiento de datos personales?"
+  articulos_esperados: []
+  respuesta_referencia: "Sin base en la LCSP: la protección de datos se rige por el RGPD y la LOPDGDD."
+  debe_abstenerse: true
+- id: P-25
+  pregunta: "¿En qué plazo debe el arrendador devolver la fianza al terminar el contrato de alquiler?"
+  articulos_esperados: []
+  respuesta_referencia: "Sin base en la LCSP: la fianza de los arrendamientos se regula en la Ley 29/1994 de Arrendamientos Urbanos."
+  debe_abstenerse: true
