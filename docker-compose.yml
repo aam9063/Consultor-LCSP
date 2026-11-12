@@ -11,6 +11,9 @@ services:
       - "${LCSP_DB_PORT:-5433}:5432"
     volumes:
       - pgdata:/var/lib/postgresql
+      # Creates the dedicated test database on first initialisation, so the
+      # integration suites can truncate tables without touching the corpus.
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lcsp} -d ${POSTGRES_DB:-lcsp}"]
       interval: 5s

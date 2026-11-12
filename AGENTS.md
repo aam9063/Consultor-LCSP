@@ -189,6 +189,9 @@ cp .env.example .env && docker compose up -d
 # Backend
 cd backend && uv sync && uv run alembic upgrade head
 uv run pytest
+# Integración: exige una base propia, porque las suites truncan las tablas del corpus
+export DATABASE_URL_TEST=postgresql+asyncpg://lcsp:lcsp@localhost:5433/lcsp_test
+DATABASE_URL=$DATABASE_URL_TEST uv run alembic upgrade head && uv run pytest tests/integration
 uv run ruff check . && uv run ruff format --check . && uv run mypy --strict app
 uv run ruff check ../evals && uv run mypy --strict ../evals   # el runner de evaluación también se lintea
 
