@@ -222,6 +222,11 @@ describe("ConsultaView feedback (S8)", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       /no se pudo guardar tu valoración/i,
     );
+    // Nothing was saved, so nothing may look voted.
+    expect(screen.getByRole("button", { name: "Me ha servido" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
     expect(answer).toBeVisible();
     expect(screen.getByRole("heading", { name: "Respuesta" })).toBeInTheDocument();
   });
