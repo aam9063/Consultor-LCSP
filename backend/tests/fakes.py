@@ -5,6 +5,7 @@ vectors from the text itself so tests can assert exact values.
 """
 
 import hashlib
+from typing import Any
 
 
 class FakeLLMClient:
@@ -12,16 +13,38 @@ class FakeLLMClient:
 
     `rerank` scores are also deterministic, derived from the document text
     itself, so tests can assert exact orders. Specific document texts can be
-    pinned through `rerank_scores`.
+    pinned through `rerank_scores`. Generation responses come from an
+    ordered script (`generation_responses`); every call is counted in
+    `generation_calls` and recorded in `generation_requests` so tests can
+    assert retry counts and prompt contents.
     """
 
     def __init__(
-        self, dimensions: int = 4096, *, rerank_scores: dict[str, float] | None = None
+        self,
+        dimensions: int = 4096,
+        *,
+        rerank_scores: dict[str, float] | None = None,
+        generation_responses: list[dict[str, Any]] | None = None,
     ) -> None:
         self.dimensions = dimensions
         self.calls: list[list[str]] = []
         self.rerank_calls: list[tuple[str, list[str]]] = []
         self._rerank_scores = dict(rerank_scores or {})
+        self.generation_calls = 0
+        self.generation_requests: list[dict[str, Any]] = []
+        self._generation_responses = list(generation_responses or [])
+
+    async def generate_json(
+        self, *, system: str, user: str, schema: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Return the next scripted response, in order; record the call."""
+        self.generation_calls += 1
+        self.generation_requests.append({"system": system, "user": user, "schema": schema})
+        if not self._generation_responses:
+            raise AssertionError(
+                "FakeLLMClient.generate_json called with no scripted generation response"
+            )
+        return self._generation_responses.pop(0)
 
     async def embed(self, texts: list[str]) -> list[list[float]]:
         self.calls.append(list(texts))

@@ -2,8 +2,11 @@
 
 The rerank scores must be deterministic and derived from the documents so
 tests can assert exact orders; an optional override map pins scores for
-specific document texts.
+specific document texts. Generation responses are scripted as an ordered
+queue so tests can force a valid answer, then invalid ones.
 """
+
+import pytest
 
 from tests.fakes import FakeLLMClient
 
@@ -43,3 +46,26 @@ async def test_rerank_with_no_documents_makes_no_recorded_call() -> None:
 
     assert await llm.rerank("q", []) == []
     assert llm.rerank_calls == []
+
+
+# --- CL-05: scripted generation on the port ----------------------------------
+
+
+async def test_generate_json_returns_scripted_responses_in_order() -> None:
+    llm = FakeLLMClient(generation_responses=[{"a": 1}, {"b": 2}])
+
+    first = await llm.generate_json(system="s", user="u1", schema={"type": "object"})
+    second = await llm.generate_json(system="s", user="u2", schema={"type": "object"})
+
+    assert first == {"a": 1}
+    assert second == {"b": 2}
+    assert llm.generation_calls == 2
+    assert [request["user"] for request in llm.generation_requests] == ["u1", "u2"]
+    assert llm.generation_requests[0]["schema"] == {"type": "object"}
+
+
+async def test_generate_json_without_a_script_raises() -> None:
+    llm = FakeLLMClient()
+
+    with pytest.raises(AssertionError, match="scripted"):
+        await llm.generate_json(system="s", user="u", schema={})

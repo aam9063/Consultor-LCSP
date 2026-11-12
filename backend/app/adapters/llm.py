@@ -1,13 +1,14 @@
-"""LLM adapters: the `LLMClient` port and the NaN Builders client (CL-03, S1/S2).
+"""LLM adapters: the `LLMClient` port and the NaN Builders client (CL-03/04/05).
 
-The port is a `Protocol` that grows with the project: CL-04/CL-05 will add
-`rerank` and `generate` methods, and existing callers are unaffected because
-a protocol only requires the methods a caller actually uses. No domain
-module imports this file; services depend on the port, not the concrete
-client.
+The port is a `Protocol` that grows with the project: CL-05 adds
+`generate_json` (one JSON-schema-constrained chat completion), and existing
+callers are unaffected because a protocol only requires the methods a
+caller actually uses. No domain module imports this file; services depend
+on the port, not the concrete client.
 """
 
 import asyncio
+import json
 import logging
 import random
 import time
@@ -49,6 +50,10 @@ class RerankResponseError(LLMError):
     """The rerank response cannot be aligned to the input documents."""
 
 
+class ChatResponseError(LLMError):
+    """The chat completion payload is missing, unreadable or not a JSON object."""
+
+
 class LLMClient(Protocol):
     """Port for LLM providers; services must depend on this, not on NaN."""
 
@@ -58,6 +63,15 @@ class LLMClient(Protocol):
 
     async def rerank(self, query: str, documents: list[str]) -> list[float]:
         """Score `documents` against `query`, one score per document in input order.
+
+        Raises `LLMError` subclasses.
+        """
+        ...
+
+    async def generate_json(
+        self, *, system: str, user: str, schema: dict[str, Any]
+    ) -> dict[str, Any]:
+        """One JSON-schema-constrained chat completion, decoded to an object.
 
         Raises `LLMError` subclasses.
         """
@@ -81,6 +95,16 @@ class _RerankTransport(Protocol):
     async def post(self, path: str, *, cast_to: Any, body: Any = None) -> Any: ...
 
 
+class _ChatTransport(Protocol):
+    """The generic `POST` slice of the OpenAI SDK used by `generate_json`.
+
+    Chat completions go through the same generic `client.post(...)` seam
+    so tests can script the raw provider responses.
+    """
+
+    async def post(self, path: str, *, cast_to: Any, body: Any = None) -> Any: ...
+
+
 class NanLLMClient:
     """Official `openai` SDK client against the NaN Builders API."""
 
@@ -88,13 +112,14 @@ class NanLLMClient:
         self,
         settings: Settings | None = None,
         *,
-        client: _EmbeddingsTransport | _RerankTransport | None = None,
+        client: _EmbeddingsTransport | _RerankTransport | _ChatTransport | None = None,
         sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
         rng: random.Random | None = None,
     ) -> None:
         resolved = settings if settings is not None else get_settings()
         self._model = resolved.embedding_model
         self._rerank_model = resolved.rerank_model
+        self._chat_model = resolved.chat_model
         self._batch_size = resolved.embedding_batch_size
         self._dimensions = resolved.embedding_dimensions
         self._sleep = sleep
@@ -201,6 +226,43 @@ class NanLLMClient:
         )
         return scores
 
+    async def generate_json(
+        self, *, system: str, user: str, schema: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Run one JSON-schema-constrained chat completion and decode the object.
+
+        The request uses `response_format` of type `json_schema` and **never
+        sends `tools`**: the provider's strict json_schema mode only works on
+        `/chat/completions` without tools (AGENTS.md section 2). The bounded
+        retry helper backs 429/5xx, and the key and the full prompt/answer
+        text are never logged. A payload that is not a JSON object raises
+        `ChatResponseError`.
+        """
+        body: dict[str, Any] = {
+            "model": self._chat_model,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "respuesta",
+                    "strict": True,
+                    "schema": schema,
+                },
+            },
+        }
+        started = time.perf_counter()
+        response = await self._send_with_retry(
+            lambda: self._client.post("/chat/completions", cast_to=object, body=body),
+            operation="chat",
+            model=self._chat_model,
+        )
+        payload = _decoded_chat_json(response)
+        logger.info("chat model=%s latency_s=%.3f", self._chat_model, time.perf_counter() - started)
+        return payload
+
     async def _send_with_retry(
         self, send: Callable[[], Awaitable[Any]], *, operation: str, model: str
     ) -> Any:
@@ -239,6 +301,33 @@ class NanLLMClient:
         jitter_factor: float = 0.5 + self._rng.random()
         # Jitter spreads retries over [0.5x, 1.5x] of the exponential slot.
         return exponential * jitter_factor
+
+
+def _decoded_chat_json(response: Any) -> dict[str, Any]:
+    """Decode a chat completion into a JSON object, with typed errors.
+
+    The provider answers `{"choices": [{"message": {"content": "..."}}]}`
+    where `content` is the JSON document as text. Anything else — no
+    choices, no textual content, invalid JSON, or a non-object payload —
+    raises `ChatResponseError`. The text itself is never logged.
+    """
+    if not isinstance(response, dict):
+        raise ChatResponseError("chat response is not a JSON object")
+    choices = response.get("choices")
+    if not isinstance(choices, list) or not choices:
+        raise ChatResponseError("chat response has no choices")
+    first = choices[0]
+    message = first.get("message") if isinstance(first, dict) else None
+    content = message.get("content") if isinstance(message, dict) else None
+    if not isinstance(content, str):
+        raise ChatResponseError("chat response has no textual content")
+    try:
+        payload = json.loads(content)
+    except json.JSONDecodeError as error:
+        raise ChatResponseError("chat content is not valid JSON") from error
+    if not isinstance(payload, dict):
+        raise ChatResponseError("chat content is not a JSON object")
+    return payload
 
 
 def _aligned_rerank_scores(response: Any, document_count: int) -> list[float]:

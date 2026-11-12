@@ -15,6 +15,7 @@ from openai import APIStatusError
 from pydantic import SecretStr
 
 from app.adapters.llm import (
+    ChatResponseError,
     EmbeddingDimensionError,
     LLMRetriesExhaustedError,
     MissingAPIKeyError,
@@ -296,3 +297,72 @@ async def test_rerank_with_no_documents_makes_no_call() -> None:
 
     assert await client.rerank("q", []) == []
     assert transport.calls == []
+
+
+# --- CL-05 / S3: generate_json on the port -----------------------------------
+
+
+def _chat_response(content: str | None) -> dict[str, Any]:
+    return {"choices": [{"message": {"role": "assistant", "content": content}}]}
+
+
+async def test_generate_json_posts_chat_completions_with_json_schema_and_never_tools() -> None:
+    transport = RerankTransport(script=[_chat_response('{"respuesta": "hola"}')])
+    client = NanLLMClient(
+        _settings(chat_model="deepseek-v4-flash"), client=transport, sleep=_fake_sleep
+    )
+
+    payload = await client.generate_json(system="sys", user="usr", schema={"type": "object"})
+
+    assert payload == {"respuesta": "hola"}
+    assert transport.calls[0]["path"] == "/chat/completions"
+    body = transport.calls[0]["body"]
+    assert body["model"] == "deepseek-v4-flash"
+    assert body["messages"] == [
+        {"role": "system", "content": "sys"},
+        {"role": "user", "content": "usr"},
+    ]
+    assert body["response_format"]["type"] == "json_schema"
+    assert body["response_format"]["json_schema"]["schema"] == {"type": "object"}
+    # The provider's strict json_schema mode only works without tools.
+    assert "tools" not in body
+    assert "tool_choice" not in body
+
+
+async def test_generate_json_retries_429_and_succeeds() -> None:
+    transport = RerankTransport(script=[429, _chat_response('{"ok": true}')])
+    delays: list[float] = []
+
+    async def recording_sleep(seconds: float) -> None:
+        delays.append(seconds)
+
+    client = NanLLMClient(_settings(), client=transport, sleep=recording_sleep)
+
+    assert await client.generate_json(system="s", user="u", schema={}) == {"ok": True}
+    assert len(transport.calls) == 2
+    assert len(delays) == 1
+    assert 0 < delays[0] <= 20.0
+
+
+async def test_generate_json_persistent_429_raises_a_typed_error() -> None:
+    transport = RerankTransport(script=[429, 429, 429, 429, 429])
+    client = NanLLMClient(_settings(), client=transport, sleep=_fake_sleep)
+
+    with pytest.raises(LLMRetriesExhaustedError):
+        await client.generate_json(system="s", user="u", schema={})
+
+    assert len(transport.calls) == 5
+
+
+@pytest.mark.parametrize(
+    "content",
+    ["[1, 2]", '"texto"', "no soy json", None],
+)
+async def test_generate_json_rejects_non_object_payloads_with_a_typed_error(
+    content: str | None,
+) -> None:
+    transport = RerankTransport(script=[_chat_response(content)])
+    client = NanLLMClient(_settings(), client=transport, sleep=_fake_sleep)
+
+    with pytest.raises(ChatResponseError):
+        await client.generate_json(system="s", user="u", schema={})
