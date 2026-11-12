@@ -10,7 +10,7 @@ problem is a typed 422 with the project envelope `{"error": {"code",
 
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import select
@@ -106,18 +106,39 @@ async def create_feedback(body: FeedbackRequest, session: SessionDep) -> JSONRes
     )
 
 
+def _parse_limit(raw: str | None) -> int | None:
+    """Parse `limit` by hand so a bad value gets the project envelope.
+
+    Declaring it as an int with a `ge=1` constraint is tempting, but FastAPI then
+    answers with its own `{"detail": [...]}` body, which would be the only
+    endpoint breaking the typed error contract of the API.
+    """
+    if raw is None:
+        return FEEDBACK_DEFAULT_LIMIT
+    if not raw.isdigit():
+        return None
+    value = int(raw)
+    return value if value >= 1 else None
+
+
 @router.get("/feedback", response_model=list[FeedbackItem])
 async def list_feedback(
     session: SessionDep,
-    limit: int = Query(default=FEEDBACK_DEFAULT_LIMIT, ge=1),
-) -> list[FeedbackItem]:
+    limit: str | None = None,
+) -> list[FeedbackItem] | JSONResponse:
     """List the stored votes, most recent first, capped at `FEEDBACK_MAX_LIMIT`."""
+    parsed_limit = _parse_limit(limit)
+    if parsed_limit is None:
+        return _error(
+            "limite_invalido",
+            "el parámetro limit debe ser un entero mayor o igual que 1",
+        )
     rows = (
         (
             await session.execute(
                 select(Feedback)
                 .order_by(Feedback.creada_en.desc(), Feedback.id.desc())
-                .limit(min(limit, FEEDBACK_MAX_LIMIT))
+                .limit(min(parsed_limit, FEEDBACK_MAX_LIMIT))
             )
         )
         .scalars()
