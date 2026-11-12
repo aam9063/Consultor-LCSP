@@ -14,13 +14,19 @@ from typing import Any
 
 __all__ = [
     "AbstentionStats",
+    "ModeRetrievalMetrics",
     "QuestionResult",
+    "RetrievalComparisonRow",
     "abstention_accuracy",
     "all_citations_valid",
     "build_report",
+    "compare_retrieval_modes",
+    "hit_at_1",
+    "mean_reciprocal_rank",
     "question_record",
     "recall_at_k",
     "render_markdown",
+    "retrieval_compare_payload",
 ]
 
 # k of the recall@5 objective (AC-10) and how many worst cases to list.
@@ -62,6 +68,34 @@ class QuestionResult:
 
 
 @dataclass(frozen=True, slots=True)
+class RetrievalComparisonRow:
+    """One annotated question with the full ranking of both retrieval modes.
+
+    Unlike `QuestionResult`, this keeps the rankings even for out-of-law
+    questions and carries no answer data: the comparison measures retrieval
+    positions only, with no generation call.
+    """
+
+    id: str
+    pregunta: str
+    expected_articles: tuple[str, ...]
+    hybrid_articles: tuple[str, ...]
+    embeddings_articles: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class ModeRetrievalMetrics:
+    """Aggregate retrieval metrics of one mode over the judged questions."""
+
+    mode: str
+    questions: int
+    recall_at_5: float
+    hit_at_1: float
+    mrr: float
+    worst_cases: tuple[dict[str, Any], ...]
+
+
+@dataclass(frozen=True, slots=True)
 class AbstentionStats:
     """Abstention behaviour over the out-of-law subset."""
 
@@ -85,6 +119,144 @@ def recall_at_k(expected: Sequence[str], retrieved_articles: Sequence[str], k: i
         return 1.0
     top_k = set(retrieved_articles[:k])
     return sum(1 for article in unique_expected if article in top_k) / len(unique_expected)
+
+
+def hit_at_1(expected: Sequence[str], retrieved_articles: Sequence[str]) -> float:
+    """1.0 when the first retrieved article is one of the expected ones, else 0.0.
+
+    Only the first position counts: an expected article further down improves
+    MRR, never hit@1. An empty ranking, or a question expecting no article
+    (out-of-law), can never hit: 0.0.
+    """
+    if not retrieved_articles or not expected:
+        return 0.0
+    return 1.0 if retrieved_articles[0] in set(expected) else 0.0
+
+
+def mean_reciprocal_rank(expected: Sequence[str], ranked: Sequence[str]) -> float:
+    """Reciprocal rank of the ranking for one question (1/position, 1-indexed).
+
+    The first expected article found in the ranking sets the reciprocal rank,
+    so a question with several expected articles is satisfied by whichever
+    comes first. 0.0 when no expected article appears, when the ranking is
+    empty, or when nothing is expected; the comparison over questions averages
+    this per-question value into the mean.
+    """
+    if not expected:
+        return 0.0
+    expected_set = set(expected)
+    for position, article in enumerate(ranked, start=1):
+        if article in expected_set:
+            return 1.0 / position
+    return 0.0
+
+
+def compare_retrieval_modes(
+    rows: Sequence[RetrievalComparisonRow],
+) -> dict[str, ModeRetrievalMetrics]:
+    """Aggregate recall@5, hit@1 and MRR for the hybrid and embeddings-only modes.
+
+    Recall@5 alone cannot separate the modes when both find the same articles;
+    hit@1 and MRR measure whether the better mode also puts the right article
+    higher. Rows without expected articles (out-of-law) are kept in the
+    payload but not judged: no mode can hit an article the question does not
+    expect. Worst cases list the judged questions that are not perfect
+    (mrr, hit@1 or recall below 1.0), worst first by ascending mrr, then
+    hit@1, then recall@5, ties broken by id.
+    """
+    judged = [row for row in rows if row.expected_articles]
+    return {
+        "hybrid": _mode_metrics("hybrid", judged, [row.hybrid_articles for row in judged]),
+        "embeddings": _mode_metrics(
+            "embeddings", judged, [row.embeddings_articles for row in judged]
+        ),
+    }
+
+
+def _mode_metrics(
+    mode: str,
+    judged: Sequence[RetrievalComparisonRow],
+    rankings: Sequence[Sequence[str]],
+) -> ModeRetrievalMetrics:
+    recalls = [
+        recall_at_k(row.expected_articles, ranking, RECALL_K)
+        for row, ranking in zip(judged, rankings, strict=True)
+    ]
+    hits = [
+        hit_at_1(row.expected_articles, ranking)
+        for row, ranking in zip(judged, rankings, strict=True)
+    ]
+    mrrs = [
+        mean_reciprocal_rank(row.expected_articles, ranking)
+        for row, ranking in zip(judged, rankings, strict=True)
+    ]
+    imperfect = [
+        (row, ranking, recall, hit, mrr)
+        for row, ranking, recall, hit, mrr in zip(
+            judged, rankings, recalls, hits, mrrs, strict=True
+        )
+        if recall < 1.0 or hit < 1.0 or mrr < 1.0
+    ]
+    imperfect.sort(key=lambda item: (item[4], item[3], item[2], item[0].id))
+    worst_cases = tuple(
+        {
+            "id": row.id,
+            "pregunta": row.pregunta,
+            "recall_at_5": round(recall, 4),
+            "hit_at_1": round(hit, 4),
+            "mrr": round(mrr, 4),
+            "recuperados": list(ranking),
+        }
+        for row, ranking, recall, hit, mrr in imperfect[:WORST_CASES_LIMIT]
+    )
+    return ModeRetrievalMetrics(
+        mode=mode,
+        questions=len(judged),
+        recall_at_5=_mean(recalls),
+        hit_at_1=_mean(hits),
+        mrr=_mean(mrrs),
+        worst_cases=worst_cases,
+    )
+
+
+def retrieval_compare_payload(
+    rows: Sequence[RetrievalComparisonRow],
+    comparison: dict[str, ModeRetrievalMetrics],
+    *,
+    fecha: str,
+    corpus: str,
+    top_k: int,
+) -> dict[str, Any]:
+    """The JSON payload persisted as `evals/results/<fecha>-retrieval.json`.
+
+    Keeps the full per-question ranking of both modes, so any later analysis
+    (positions, ties, new metrics) needs no new quota.
+    """
+    return {
+        "fecha": fecha,
+        "corpus": corpus,
+        "top_k": top_k,
+        "comparison": {
+            mode: {
+                "questions": metrics.questions,
+                "recall_at_5": round(metrics.recall_at_5, 4),
+                "hit_at_1": round(metrics.hit_at_1, 4),
+                "mrr": round(metrics.mrr, 4),
+                "worst_cases": list(metrics.worst_cases),
+            }
+            for mode, metrics in comparison.items()
+        },
+        "questions": [
+            {
+                "id": row.id,
+                "pregunta": row.pregunta,
+                "articulos_esperados": list(row.expected_articles),
+                "hibrido": list(row.hybrid_articles),
+                "embeddings": list(row.embeddings_articles),
+            }
+            for row in rows
+        ],
+    }
 
 
 def all_citations_valid(answer: QuestionResult) -> bool:
