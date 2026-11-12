@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<response><status><code>200</code></status><data><texto>
+<bloque id="tp" tipo="encabezado" titulo="TÍTULO PRELIMINAR"><version id_norma="BOE-A-2017-12902" fecha_publicacion="20171109" fecha_vigencia="20180309"><p class="seccion">TÍTULO PRELIMINAR</p></version></bloque>
+<bloque id="a1" tipo="precepto" titulo="Artículo 1"><version id_norma="BOE-A-2017-12902" fecha_publicacion="20171109" fecha_vigencia="20180309"><p class="articulo">Artículo 1. Objeto de la Ley.</p><p class="parrafo">1. Esta Ley regula la contratación del sector público.</p><p class="parrafo">2. También el examen de sus cláusulas.</p></version></bloque>
+<bloque id="a2" tipo="precepto" titulo="Artículo 2"><version id_norma="BOE-A-2017-12902" fecha_publicacion="20171109" fecha_vigencia="20180309"><p class="articulo">Artículo 2. Exigencia de la garantía definitiva.</p><p class="parrafo">1. Los licitadores deberán constituir una garantía definitiva.</p></version></bloque>
+</texto></data></response>

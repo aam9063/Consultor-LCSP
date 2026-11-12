@@ -37,6 +37,21 @@ curl -L https://www.boe.es/boe/dias/2017/11/09/pdfs/BOE-A-2017-12902.pdf \
 El PDF sirve para contrastar a mano, **no** como entrada del parser: aplana la jerarquía
 (libro, título, capítulo, sección, artículo, apartado) y pierde las anclas.
 
+## Ingesta
+
+```bash
+# Desde la raíz del repo (forma literal del BRIEF)
+uv run --project backend python -m app.ingest data/lcsp/lcsp-consolidada.xml --dry-run
+uv run --project backend python -m app.ingest data/lcsp/lcsp-consolidada.xml
+
+# Desde backend/
+cd backend && uv run python -m app.ingest ../data/lcsp/lcsp-consolidada.xml
+```
+
+`--dry-run` parsea y reporta chunks y lotes de embeddings sin escribir ni llamar a la API.
+La ingesta real necesita `NAN_API_KEY` y es idempotente: repetirla no duplica filas y no
+vuelve a embeber lo que no cambió.
+
 ## Verificación con el fichero real
 
 El test que valida contra el XML de verdad vive en `backend/tests/data/` y se ejecuta
