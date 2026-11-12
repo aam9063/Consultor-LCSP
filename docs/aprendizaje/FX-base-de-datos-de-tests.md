@@ -51,6 +51,22 @@ crea la base de tests al inicializar el volumen, y el CI la crea y migra como un
 4. Verificación funcional: 580 chunks antes → 34 tests pasan → **580 chunks después**; sin la variable,
    la sesión aborta con el mensaje esperado.
 
+## Avisos de la revisión nativa (no bloqueantes, trabajo posterior)
+
+La revisión aprobó el slice con tres avisos que quedan anotados, con mi propia lectura de cada uno:
+
+- `R3-002` (WARNING, script de inicialización): Postgres no tiene `CREATE DATABASE IF NOT EXISTS`, y el
+  script corre con `set -e`; si la base ya existiera, el `psql` fallaría y la inicialización del
+  contenedor abortaría. Hoy no ocurre porque la inicialización corre una sola vez sobre un volumen
+  vacío, pero conviene un guardia explícito.
+- `R3-003` (WARNING, paso de CI): el nombre de la base se interpola en un `CREATE DATABASE` con
+  f-string. El valor viene de nuestra propia configuración y no de un usuario, así que el riesgo real
+  es bajo, pero lo correcto es validar el nombre con una expresión regular antes de interpolar.
+- `R3-001` (SUGGESTION, `conftest.py`): el guardia de la variable y la asignación de `DATABASE_URL`
+  están en el mismo ámbito de módulo; funcionan, pero se leen mejor separados en dos pasos comentados.
+
+Ninguno abrió corrección: son mejoras de robustez, no defectos del comportamiento entregado.
+
 ## 5. Conclusión: qué se aprende de esto
 
 **Un test que destruye datos reales está mal ubicado, no mal escrito.** Truncar tablas es la forma
