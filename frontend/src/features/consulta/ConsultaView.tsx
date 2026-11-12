@@ -34,15 +34,25 @@ function FeedbackControls({ consulta }: { consulta: ConsultaResponse }) {
   const feedback = useMutation({ mutationFn: postFeedback });
 
   function handleVote(selected: FeedbackVote) {
+    const previous = vote;
     setVote(selected);
-    feedback.mutate({
-      pregunta: consulta.pregunta,
-      respuesta: consulta.respuesta,
-      citas: consulta.citas,
-      modelo: consulta.modelo,
-      voto: selected,
-      comentario: null,
-    });
+    feedback.mutate(
+      {
+        pregunta: consulta.pregunta,
+        respuesta: consulta.respuesta,
+        citas: consulta.citas,
+        modelo: consulta.modelo,
+        voto: selected,
+        comentario: null,
+      },
+      {
+        // A failed request stored nothing, so the button must not claim a vote
+        // that does not exist: revert and let the alert explain.
+        onError: () => {
+          setVote(previous);
+        },
+      },
+    );
   }
 
   return (

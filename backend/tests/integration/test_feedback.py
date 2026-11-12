@@ -178,3 +178,22 @@ async def test_the_database_rejects_votes_outside_1_and_minus_1() -> None:
         with pytest.raises(IntegrityError):
             await session.commit()
         await session.rollback()
+
+
+async def test_a_json_boolean_is_not_a_vote() -> None:
+    # `True` is an `int` in Python and Pydantic coerces it to 1 before the
+    # service validator sees it, so a boolean could become a real vote.
+    body = {
+        "pregunta": "¿Garantía definitiva?",
+        "respuesta": "El 5% [art. 107]",
+        "citas": [{"articulo": "107", "apartado": None}],
+        "modelo": "test-model",
+        "voto": True,
+        "comentario": None,
+    }
+
+    async with AsyncClient(transport=ASGITransport(app=_app()), base_url="http://test") as client:
+        response = await client.post("/feedback", json=body)
+
+    assert response.status_code == 422, response.text
+    assert response.json()["error"]["code"] == "voto_invalido"
