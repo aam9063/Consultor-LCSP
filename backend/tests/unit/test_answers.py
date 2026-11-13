@@ -30,7 +30,12 @@ def _payload(respuesta: str, *, abstencion: bool = False) -> dict[str, object]:
     }
 
 
-def _chunk(articulo: str = "107", texto: str = "texto del 107") -> RetrievedChunk:
+def _chunk(
+    articulo: str = "107",
+    texto: str = "texto del 107",
+    *,
+    branches: tuple[str, ...] = ("direct",),
+) -> RetrievedChunk:
     return RetrievedChunk(
         id=1,
         articulo=articulo,
@@ -39,7 +44,7 @@ def _chunk(articulo: str = "107", texto: str = "texto del 107") -> RetrievedChun
         url="https://www.boe.es/buscar/act.php?id=BOE-A-2017-12902",
         texto=texto,
         score=0.9,
-        branches=("direct",),
+        branches=branches,
     )
 
 
@@ -71,18 +76,44 @@ async def _answer(
 # --- AC-07: abstention before any generation ---------------------------------
 
 
-async def test_low_best_score_abstains_without_calling_generation(
+async def test_low_best_score_abstains_without_a_direct_chunk(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Regression guard for AC-07: with no direct-route chunk the threshold
+    abstention still fires before any generation call."""
     llm = FakeLLMClient()
 
-    result = await _answer(monkeypatch, llm, _retrieval([_chunk()], best_score=0.1))
+    result = await _answer(
+        monkeypatch, llm, _retrieval([_chunk(branches=("lexical", "vector"))], best_score=0.1)
+    )
 
     assert result.abstencion is True
     assert result.respuesta == ABSTENTION
     assert result.motivo_abstencion == ABSTENTION
     assert result.citas == ()
     assert llm.generation_calls == 0
+
+
+async def test_a_named_article_resolved_by_the_direct_route_skips_the_threshold(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """BRIEF §5 S2: a question naming an article retrieves it directly, and a
+    named article that exists is base by definition (S3). The rerank score
+    only measures question/text overlap ("¿qué dice el art. 5?"), so it must
+    not veto an answer whose base is already resolved by number."""
+    llm = FakeLLMClient(generation_responses=[_payload("El artículo 5 dice esto [art. 5].")])
+
+    # Below the configured threshold, so recalibrating it keeps this a real
+    # sub-threshold scenario.
+    threshold = get_settings().rerank_threshold
+    result = await _answer(
+        monkeypatch, llm, _retrieval([_chunk("5", "texto del 5")], best_score=threshold - 0.05)
+    )
+
+    assert result.abstencion is False
+    assert llm.generation_calls == 1
+    assert result.citas == (Citation("5", None),)
+    assert result.chunks[0].articulo == "5"
 
 
 async def test_nothing_retrieved_abstains_without_calling_generation(
