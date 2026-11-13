@@ -18,6 +18,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import delete
 
 from app.api.deps import get_llm
+from app.config import get_settings
 from app.db.models import Chunk, Fuente
 from app.db.session import get_session_factory
 from app.domain.lcsp_parser import LcspChunk, parse_lcsp
@@ -98,7 +99,58 @@ async def test_low_best_score_abstains_with_the_exact_message_and_no_generation(
     assert llm.generation_calls == 0
 
 
-# --- AC-06: validation, exactly one retry, unsupported marking ----------------
+async def test_a_named_article_missing_from_the_corpus_still_abstains() -> None:
+    """A question may name an article the corpus does not have: the direct
+    route then contributes no chunk, so the threshold abstention applies to
+    the sub-threshold hybrid results exactly as for any other question."""
+    chunks = await _ingest_fixture()
+    llm = FakeLLMClient(
+        rerank_scores={chunk.texto: 0.05 for chunk in chunks},
+        generation_responses=[],  # must never be reached
+    )
+    app = _app_with_fake_llm(llm)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post("/consultas", json={"pregunta": "¿Qué dice el art. 200?"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["abstencion"] is True
+    assert body["respuesta"] == ABSTENTION
+    assert body["citas"] == []
+    assert llm.generation_calls == 0
+
+
+async def test_a_named_article_below_the_threshold_does_not_abstain() -> None:
+    """BRIEF §5 S2: "¿Qué dice el art. 159?" retrieves article 159 directly;
+    a named article that exists is base by definition (S3), so the rerank
+    threshold — which only measures question/text overlap — does not veto
+    the answer even when every score sits under it."""
+    chunks = await _ingest_fixture()
+    # Derived from the threshold so recalibrating it keeps this a real
+    # sub-threshold scenario; article 159 differs from the article every
+    # other integration test pins.
+    threshold = get_settings().rerank_threshold
+    llm = FakeLLMClient(
+        rerank_scores={
+            chunk.texto: (threshold - 0.05 if chunk.articulo == "159" else 0.05) for chunk in chunks
+        },
+        generation_responses=[
+            _payload("Los contratos se ejecutan conforme a sus cláusulas [art. 159].")
+        ],
+    )
+    app = _app_with_fake_llm(llm)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post("/consultas", json={"pregunta": "¿Qué dice el art. 159?"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["abstencion"] is False
+    assert llm.generation_calls == 1
+    article_chunks = [chunk for chunk in body["chunks"] if chunk["articulo"] == "159"]
+    assert article_chunks, "the named article is retrieved"
+    assert all("direct" in chunk["branches"] for chunk in article_chunks)
 
 
 async def test_answering_without_any_backed_citation_abstains_after_one_retry() -> None:

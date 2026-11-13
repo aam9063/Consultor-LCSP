@@ -1,14 +1,22 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# The environment file lives at the repository root. Resolving it from this file
+# instead of the current working directory means `cd backend && pytest` or
+# `uvicorn app.main:app` read the same configuration as commands run from the
+# root. In the container the file does not exist, so the process environment is
+# the only source, which is what Compose provides.
+_ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
 
 
 class Settings(BaseSettings):
     """Runtime configuration. Every secret comes from the environment."""
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=_ENV_FILE,
         env_file_encoding="utf-8",
         extra="ignore",
         populate_by_name=True,
@@ -18,6 +26,10 @@ class Settings(BaseSettings):
         default="postgresql+asyncpg://lcsp:lcsp@localhost:5432/lcsp",
         validation_alias="DATABASE_URL",
     )
+    # Dedicated database for the integration suites, which truncate the corpus
+    # tables. Read through Settings so a value in the local environment file
+    # counts, not only one exported in the shell.
+    database_url_test: str = Field(default="", validation_alias="DATABASE_URL_TEST")
     cors_origins: list[str] = Field(
         default=["http://localhost:5173", "http://localhost:8080"],
         validation_alias="CORS_ORIGINS",

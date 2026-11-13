@@ -38,6 +38,7 @@ jobs:
           --health-retries 12
     env:
       DATABASE_URL: postgresql+asyncpg://lcsp:ci-${{ github.run_id }}@localhost:5432/lcsp
+      DATABASE_URL_TEST: postgresql+asyncpg://lcsp:ci-${{ github.run_id }}@localhost:5432/lcsp_test
       NAN_API_KEY: ""
     steps:
       - uses: actions/checkout@v7
@@ -53,6 +54,45 @@ jobs:
       - run: uv run ruff format --check ../evals
       - run: uv run mypy --strict ../evals
       - run: uv run alembic upgrade head
+      - name: Create the dedicated test database
+        run: |
+          uv run python - <<'PY'
+          import asyncio
+          import os
+          import re
+
+          from sqlalchemy import text
+          from sqlalchemy.ext.asyncio import create_async_engine
+
+          admin_url, database = os.environ["DATABASE_URL_TEST"].rsplit("/", 1)
+          target = database.split("?", 1)[0]
+
+          # The name is interpolated into a quoted CREATE DATABASE identifier,
+          # and Postgres accepts almost anything inside double quotes (even
+          # `;`): a malformed URL would silently create a garbage database
+          # instead of failing. Only plain identifiers are allowed through.
+          if not re.fullmatch(r"[A-Za-z0-9_]+", target):
+              raise SystemExit(
+                  f"Refusing to create a test database with the unsafe name {target!r}: "
+                  "DATABASE_URL_TEST must end in a plain database name."
+              )
+
+          async def main() -> None:
+              engine = create_async_engine(admin_url + "/lcsp", isolation_level="AUTOCOMMIT")
+              async with engine.connect() as connection:
+                  exists = await connection.scalar(
+                      text("SELECT 1 FROM pg_database WHERE datname = :name"), {"name": target}
+                  )
+                  if exists is None:
+                      await connection.execute(text(f'CREATE DATABASE "{target}"'))
+              await engine.dispose()
+
+          asyncio.run(main())
+          PY
+      - name: Migrate the test database
+        run: uv run alembic upgrade head
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL_TEST }}
       - run: uv run pytest
       - run: uv run pytest tests/integration
 

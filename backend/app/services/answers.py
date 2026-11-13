@@ -1,8 +1,11 @@
 """Answering service: generation with validated citations and abstention (CL-05, S3/S12/S13).
 
-Flow (BRIEF §5 S3): abstain first — when nothing was retrieved or the best
-rerank score is under the configurable threshold, the generation model is
-never called and the exact abstention message is returned (AC-07).
+Flow (BRIEF §5 S3): abstain first — when nothing was retrieved, or the best
+rerank score is under the configurable threshold while no chunk came from
+the direct-article route, the generation model is never called and the
+exact abstention message is returned (AC-07). A question that names an
+article and gets it back is base by definition (BRIEF §5 S2): the rerank
+score only measures question/text overlap, so it does not veto that case.
 Otherwise the retrieved chunks become the only context, the answer comes
 back as JSON (`respuesta`, `citas`, `abstencion`, `motivo_abstencion`)
 and every `[art. X]` / `[art. X.Y]` citation is validated in code against
@@ -22,7 +25,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.adapters.llm import LLMClient, LLMError
 from app.config import get_settings
 from app.domain.citations import Citation, CitationReport, build_chunk_index, validate_answer
-from app.services.retrieval import RetrievedChunk, hybrid_search
+from app.services.retrieval import BRANCH_DIRECT, RetrievedChunk, hybrid_search
 
 logger = logging.getLogger(__name__)
 
@@ -85,10 +88,11 @@ async def answer_question(
     """Answer `question` from the retrieved context, or abstain (AC-07 first)."""
     settings = get_settings()
     retrieval = await hybrid_search(session, llm, question, top_k=top_k)
+    threshold_applies = not _resolved_by_direct_route(retrieval.chunks)
     if (
         not retrieval.chunks
         or retrieval.best_score is None
-        or retrieval.best_score < settings.rerank_threshold
+        or (threshold_applies and retrieval.best_score < settings.rerank_threshold)
     ):
         logger.info(
             "answer abstained question_chars=%d retrieved=%d best_score=%s",
@@ -149,6 +153,19 @@ async def answer_question(
         model=settings.chat_model,
         chunks=tuple(retrieval.chunks),
     )
+
+
+def _resolved_by_direct_route(chunks: list[RetrievedChunk]) -> bool:
+    """Whether any chunk was retrieved by the direct-article route.
+
+    A question that names an article and gets it back has the base it needs
+    by definition (BRIEF §5 S2). The rerank score measures semantic overlap
+    between a mostly content-free question and a short article
+    ("¿qué dice el art. 5?"), so the threshold answers a different question
+    here ("is there any base at all", S3) than the one the direct route has
+    already settled; applying it would abstain on correctly retrieved text.
+    """
+    return any(BRANCH_DIRECT in chunk.branches for chunk in chunks)
 
 
 def _abstention(respuesta: str, model: str, motivo: str | None = None) -> AnswerResult:

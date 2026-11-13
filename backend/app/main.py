@@ -5,7 +5,9 @@ from fastapi.responses import JSONResponse
 
 from app.adapters.llm import LLMError, MissingAPIKeyError
 from app.api.answers import router as answers_router
+from app.api.feedback import router as feedback_router
 from app.api.health import router as health_router
+from app.api.radar import router as radar_router
 from app.api.retrieval import router as retrieval_router
 from app.api.revisions import router as revisions_router
 from app.domain.clauses import ClauseTooLongError
@@ -49,6 +51,8 @@ def create_app() -> FastAPI:
     app.include_router(retrieval_router)
     app.include_router(answers_router)
     app.include_router(revisions_router)
+    app.include_router(radar_router)
+    app.include_router(feedback_router)
     return app
 
 

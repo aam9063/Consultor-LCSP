@@ -81,12 +81,27 @@ Definitive run over the real corpus (580 chunks, real embeddings, real rerank an
 | Answers with every citation valid | **100%** | ≥ 95% ✅ |
 | Correct abstention | **5/5** | ≥ 4/5 ✅ |
 
-**Honest caveat:** the hybrid ranking scored exactly the same as embeddings alone (97.5% both,
-+0.00), so Reciprocal Rank Fusion and the reranker add nothing measurable on this corpus. With
-article-sized chunks, a generous `top_k` and only 580 chunks, exact vector search already lands
-the right article. Proving the value of the hybrid layer would need a larger corpus, finer chunks
-or questions where vocabulary and meaning disagree. The full history of the three runs — including
+**Where the hybrid layer pays off.** Recall@5 is identical for both modes (97.5%), but that metric
+is blind to ordering. Measuring the retrieval itself, without generation, over the same 20 questions:
+
+| Mode | Recall@5 | Hit@1 | MRR |
+| --- | --- | --- | --- |
+| Hybrid (vector + full text + RRF + rerank) | 97.5% | **95.0%** | **0.967** |
+| Embeddings only | 97.5% | 80.0% | 0.892 |
+
+So Reciprocal Rank Fusion and the reranker buy **position**, not coverage: the right article is first
+in 95% of questions instead of 80%, which is exactly what a citation-first interface needs. This
+corrects an earlier conclusion drawn from `recall@5` alone. The full history of the runs — including
 two measurement defects found and fixed — is in `odd/tasks/consultor-lcsp-mvp.md`.
+
+## Data
+
+- Questions are processed by NaN Builders' API in the **European Union**. According to the
+  provider's FAQ, prompts and responses are not logged, the key is personal and non-transferable,
+  and no model is trained with your data.
+- What this application stores itself: the **votes** you submit on an answer (question, answer,
+  citations, model, vote, optional comment), so an annotated evaluation set can be grown. Nothing
+  else is persisted: no accounts, no session history.
 
 ## Configuration that matters
 
@@ -131,8 +146,19 @@ cd frontend && pnpm install
 pnpm lint && pnpm typecheck && pnpm vitest run && pnpm build && pnpm e2e
 ```
 
-`tests/integration` needs the compose database running; `tests/data` needs the real statute in
-`data/lcsp/` and validates the parser against it.
+`tests/integration` needs the compose database running **and** a dedicated test database: the suites
+truncate the corpus tables, so running them against the working database would destroy the ingested
+statute and the embeddings already paid for. The compose stack creates `<main>_test` on first
+initialisation (re-create the volume with `docker compose down -v` if yours predates it), and the
+suites refuse to run without it:
+
+```bash
+export DATABASE_URL_TEST=postgresql+asyncpg://lcsp:lcsp@localhost:5433/lcsp_test
+cd backend && DATABASE_URL=$DATABASE_URL_TEST uv run alembic upgrade head
+uv run pytest tests/integration
+```
+
+`tests/data` needs the real statute in `data/lcsp/` and validates the parser against it.
 
 ## Known limits
 

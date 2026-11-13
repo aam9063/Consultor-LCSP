@@ -319,7 +319,14 @@ Tres corridas sobre el corpus real (580 chunks, `qwen3-embedding` + `rerank` + `
 
 **Objetivos AC-10: cumplidos** — recall@5 ≥ 85% (97,5%), citas válidas ≥ 95% (100%), abstención correcta ≥ 4/5 (5/5).
 
-**Hallazgo central (BRIEF §12):** el recall híbrido es **idéntico al de solo embeddings** (97,5% ambos, +0,00). Con este corpus, RRF + rerank no aportan nada medible. Interpretación honesta: 580 chunks de artículo completo son lexicamente ricos, `top_k=6` es generoso y la búsqueda exacta de pgvector ya resuelve. Para demostrar valor del híbrido haría falta un corpus mayor, chunks más finos o preguntas donde el léxico y la semántica discrepen. Queda como propuesta, no como deuda oculta.
+**Hallazgo central (BRIEF §12), corregido:** el `recall@5` híbrido es idéntico al de solo embeddings (97,5% ambos), y en su momento se concluyó que RRF + rerank no aportaban nada. **Era una conclusión limitada por la métrica**: `recall@5` es ciego al orden. Medida la recuperación en sí, sin generación, sobre las mismas 20 preguntas:
+
+| Modo | recall@5 | hit@1 | MRR |
+| --- | --- | --- | --- |
+| Híbrido (vector + texto + RRF + rerank) | 97,5% | **95,0%** | **0,967** |
+| Solo embeddings | 97,5% | 80,0% | 0,892 |
+
+El híbrido compra **posición**, no cobertura: el artículo correcto queda primero en el 95% de las preguntas en lugar del 80%, que es justo lo que necesita una interfaz que cita antes de explicar. Evidencia en `evals/results/2026-11-12-retrieval.json`.
 
 **Casos no perfectos**
 

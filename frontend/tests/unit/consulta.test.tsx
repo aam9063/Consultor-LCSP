@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -74,6 +74,44 @@ const consultaResponse = {
   chunks: [chunk107, chunk108],
 };
 
+const feedbackCreated = {
+  id: 1,
+  voto: 1,
+  actualizado: false,
+  creada_en: "2026-11-12T10:00:00Z",
+  actualizada_en: "2026-11-12T10:00:00Z",
+};
+
+interface SentFeedbackBody {
+  pregunta: string;
+  respuesta: string;
+  citas: { articulo: string; apartado: string | null }[];
+  modelo: string;
+  voto: number;
+  comentario: string | null;
+}
+
+function sentFeedbackBody(call: { init: RequestInit | undefined }): SentFeedbackBody {
+  const rawBody = call.init?.body;
+  if (typeof rawBody !== "string") {
+    throw new Error("POST /feedback was sent without a JSON string body");
+  }
+  return JSON.parse(rawBody) as SentFeedbackBody;
+}
+
+function feedbackCallsOf(fetchMock: ReturnType<typeof installFetchStub>): {
+  input: RequestInfo | URL;
+  init: RequestInit | undefined;
+}[] {
+  return fetchMock.mock.calls
+    .filter(([input]) => {
+      const url =
+        typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+      return url.endsWith("/feedback");
+    })
+    .map(([input, init]) => ({ input, init }));
+}
+
 function renderConsulta(onConsultaCompleted = vi.fn()) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -98,6 +136,101 @@ async function askQuestion() {
   );
   await userEvent.click(screen.getByRole("button", { name: "Consultar" }));
 }
+
+describe("ConsultaView feedback (S8)", () => {
+  it("posts the exact payload, shows the pressed state, and switching the vote updates it", async () => {
+    const fetchMock = installFetchStub((url, method) => {
+      if (url.endsWith("/consultas")) return { body: consultaResponse };
+      if (url.endsWith("/feedback") && method === "POST") {
+        return { status: 201, body: feedbackCreated };
+      }
+      return undefined;
+    });
+
+    renderConsulta();
+    await askQuestion();
+
+    const up = screen.getByRole("button", { name: "Me ha servido" });
+    const down = screen.getByRole("button", { name: "No me ha servido" });
+    expect(up).toHaveAttribute("aria-pressed", "false");
+    expect(down).toHaveAttribute("aria-pressed", "false");
+
+    await userEvent.click(up);
+
+    const calls = feedbackCallsOf(fetchMock);
+    expect(calls).toHaveLength(1);
+    const call = calls[0];
+    if (call === undefined) {
+      throw new Error("POST /feedback was not sent");
+    }
+    expect(call.init?.method).toBe("POST");
+    expect(sentFeedbackBody(call)).toEqual({
+      pregunta: "¿Qué garantía definitiva debo depositar?",
+      respuesta: consultaResponse.respuesta,
+      citas: [
+        { articulo: "107", apartado: null },
+        { articulo: "108", apartado: null },
+      ],
+      modelo: "deepseek-v4-flash",
+      voto: 1,
+      comentario: null,
+    });
+
+    expect(up).toHaveAttribute("aria-pressed", "true");
+    expect(down).toHaveAttribute("aria-pressed", "false");
+    expect(
+      await screen.findByText(
+        /tu valoración se guarda en esta instalación para mejorar el sistema/i,
+      ),
+    ).toBeInTheDocument();
+
+    await userEvent.click(down);
+
+    await waitFor(() => {
+      expect(feedbackCallsOf(fetchMock)).toHaveLength(2);
+    });
+    const second = feedbackCallsOf(fetchMock)[1];
+    if (second === undefined) {
+      throw new Error("second POST /feedback was not sent");
+    }
+    expect(sentFeedbackBody(second).voto).toBe(-1);
+    expect(down).toHaveAttribute("aria-pressed", "true");
+    expect(up).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("keeps the answer visible and shows a non-blocking error when the vote fails", async () => {
+    installFetchStub((url, method) => {
+      if (url.endsWith("/consultas")) return { body: consultaResponse };
+      if (url.endsWith("/feedback") && method === "POST") {
+        return {
+          status: 500,
+          body: { error: { code: "db_error", message: "No se pudo guardar." } },
+        };
+      }
+      return undefined;
+    });
+
+    renderConsulta();
+    await askQuestion();
+
+    const answer = await screen.findByText(
+      /la garantía definitiva es el 5 % del precio/i,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Me ha servido" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      /no se pudo guardar tu valoración/i,
+    );
+    // Nothing was saved, so nothing may look voted.
+    expect(screen.getByRole("button", { name: "Me ha servido" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    expect(answer).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Respuesta" })).toBeInTheDocument();
+  });
+});
 
 describe("ConsultaView (AC-09)", () => {
   it("shows the cited article text in the side panel when a chip is clicked", async () => {
