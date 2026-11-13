@@ -73,6 +73,15 @@ ruidoso en vez de borrar datos en silencio.
    `lcsp` congelados (47/627 intactos) y `lcsp_test` con la actividad de la corrida (94/94,
    18/18, 48/48). El arreglo queda demostrado con datos, no con la lectura del código.
 
+**RDD**: `assess --base-ref 850fd28 --committed-only` → **medium** (`executable_change` en el
+conftest). Revisión nativa al cierre del slice: lineage `review-3d07f8db23a4ff11`, lentes `risk` +
+`reliability`, 3 ficheros, 158 líneas. Dos revisores ejecutados (`nan/qwen3.6`), veredicto
+**approved**, authority quemada. Dos avisos no bloqueantes (informativos, trabajo posterior):
+`R3-001` (WARNING, `backend/tests/integration/conftest.py:83`) y `R3-002` (WARNING,
+`backend/tests/unit/test_config.py:90`). Nota menor anotada: el guardia negativo (URL de test igual
+a la de trabajo) aborta con exit 4 (fallo durante la carga del conftest) y no con el returncode 2
+del `pytest.exit`; sigue siendo fallo cerrado con mensaje claro.
+
 ## 5. Conclusión: qué se aprende de esto
 
 **Un guardia no es una ruta.** Validar la entrada y usarla después son dos momentos distintos, y
