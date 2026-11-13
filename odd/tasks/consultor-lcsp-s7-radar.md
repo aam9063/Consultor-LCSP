@@ -70,20 +70,32 @@ cifras a números; garantía provisional o subcontratación; tocar Radar (es otr
 
 | ID | Tarea | Specs | Ruta | Commit |
 | --- | --- | --- | --- | --- |
-| S7-01 | Dominio: composición de la ficha y validación de entrada | S1, S2, S3, S5 | pendiente | — |
-| S7-02 | Servicio de contraste reutilizando el motor de cláusulas | S3, S4 | pendiente | — |
-| S7-03 | `POST /revisiones/radar` con errores tipados | S1, S4, S5 | pendiente | — |
-| S7-04 | Tests de integración contra el corpus real | S6 | pendiente | — |
-| S7-05 | Documento de aprendizaje y cierre | S6 | pendiente | — |
+| S7-01 | Dominio: composición de la ficha y validación de entrada | S1, S2, S3, S5 | `04a34b9` | hecho |
+| S7-02 | Servicio de contraste reutilizando el motor de cláusulas | S3, S4 | `04a34b9` | hecho |
+| S7-03 | `POST /revisiones/radar` con errores tipados | S1, S4, S5 | `04a34b9` | hecho |
+| S7-04 | Tests de integración contra el corpus real | S6 | `04a34b9` | hecho |
+| S7-05 | Documento de aprendizaje y cierre | S6 | ver commit de cierre | hecho |
 
 ## Evidencias de verificación
 
-Se rellena por tarea.
+**TDD observado.** RED de dominio y servicio: `ModuleNotFoundError: app.domain.radar_ficha` (2 errores
+de colección). GREEN: 12 tests de dominio, 4 de servicio. Integración: 5 tests con el corpus real y
+`FakeLLMClient`; como la implementación ya existía, el RED se demostró por mutación (mapeo de origen,
+`avisos_invalidos`, umbral, cada 422): cada mutación hizo fallar su test y se revirtió byte a byte.
+
+**Gates.** `uv run pytest` 223; `uv run pytest tests/integration` 41; `ruff check`; `ruff format
+--check`; `mypy --strict` (73 ficheros). Base de trabajo intacta: 580 chunks tras cada corrida.
+
+**Prueba real de extremo a extremo** (LLM real, corpus real, ficha del expediente 4586/2026 con la
+forma que extrae Radar): chunks recuperados `192, 193, 110, 107, 194, 109`; avisos
+`posible_incumplimiento` (penalidades coercitivas del 10% sin el tope del 50% del art. 192),
+`ambiguedad` (el "y/o"), `ok` (penalidad diaria conforme al art. 193) y `ok` (garantía del 5%
+conforme al art. 107), cada uno con su `campo_origen`; `avisos_invalidos` vacío.
 
 ## Progreso y siguiente paso
 
-- Progreso: 0/5.
-- Siguiente paso: S7-01 con RED observado.
+- Progreso: 5/5. S7 cerrada.
+- Siguiente paso: PR contra `dev`, CI en verde y merge commit.
 
 ## Log
 
